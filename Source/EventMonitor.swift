@@ -309,6 +309,7 @@ extension EventMonitor {
 }
 
 /// An `EventMonitor` which can contain multiple `EventMonitor`s and calls their methods on their queues.
+// 这里是, 对于 URLSession 的各种事件的监听
 public final class CompositeEventMonitor: EventMonitor {
     public let queue = DispatchQueue(label: "org.alamofire.compositeEventMonitor", qos: .utility)
 

@@ -1,31 +1,6 @@
-//
-//  URLConvertible+URLRequestConvertible.swift
-//
-//  Copyright (c) 2014-2018 Alamofire Software Foundation (http://alamofire.org/)
-//
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
-//
-
 import Foundation
 
-/// Types adopting the `URLConvertible` protocol can be used to construct `URL`s, which can then be used to construct
-/// `URLRequests`.
+// 在之前 AFN 使用的时候, 经常在 String, URL 类型中切换. 一个 protocol, 不用在切换了, Session 里面使用该协议来生成 Request.
 public protocol URLConvertible {
     /// Returns a `URL` from the conforming instance or throws.
     ///
@@ -35,19 +10,14 @@ public protocol URLConvertible {
 }
 
 extension String: URLConvertible {
-    /// Returns a `URL` if `self` can be used to initialize a `URL` instance, otherwise throws.
-    ///
-    /// - Returns: The `URL` initialized with `self`.
-    /// - Throws:  An `AFError.invalidURL` instance.
+    // String 变为 URL, 如果变化失败, 报错.
     public func asURL() throws -> URL {
         guard let url = URL(string: self) else { throw AFError.invalidURL(url: self) }
-
         return url
     }
 }
 
 extension URL: URLConvertible {
-    /// Returns `self`.
     public func asURL() throws -> URL { self }
 }
 
@@ -86,6 +56,7 @@ extension URLRequest: URLRequestConvertible {
 
 // MARK: -
 
+// 使用协议, 来生成一个 Request 对象.
 extension URLRequest {
     /// Creates an instance with the specified `url`, `method`, and `headers`.
     ///
@@ -94,7 +65,9 @@ extension URLRequest {
     ///   - method:  The `HTTPMethod`.
     ///   - headers: The `HTTPHeaders`, `nil` by default.
     /// - Throws:    Any error thrown while converting the `URLConvertible` to a `URL`.
-    public init(url: URLConvertible, method: HTTPMethod, headers: HTTPHeaders? = nil) throws {
+    public init(url: URLConvertible,
+                method: HTTPMethod,
+                headers: HTTPHeaders? = nil) throws {
         let url = try url.asURL()
 
         self.init(url: url)

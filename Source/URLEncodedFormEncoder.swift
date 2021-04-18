@@ -950,6 +950,7 @@ final class URLEncodedFormSerializer {
 }
 
 extension Array where Element == String {
+    // 专门一个方法, 将 joined & 显示的进行了申明
     func joinedWithAmpersands() -> String {
         joined(separator: "&")
     }

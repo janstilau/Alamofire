@@ -76,6 +76,7 @@ class DetailViewController: UITableViewController {
 
         let start = CACurrentMediaTime()
 
+        // 这里, 是网络请求的回调闭包.
         let requestComplete: (HTTPURLResponse?, Result<String, AFError>) -> Void = { response, result in
             let end = CACurrentMediaTime()
             self.elapsedTime = end - start

@@ -241,7 +241,7 @@ open class Session {
 
     // MARK: - DataRequest
 
-    /// Closure which provides a `URLRequest` for mutation.
+    
     public typealias RequestModifier = (inout URLRequest) throws -> Void
 
     struct RequestConvertible: URLRequestConvertible {
@@ -260,21 +260,7 @@ open class Session {
         }
     }
 
-    /// Creates a `DataRequest` from a `URLRequest` created using the passed components and a `RequestInterceptor`.
-    ///
-    /// - Parameters:
-    ///   - convertible:     `URLConvertible` value to be used as the `URLRequest`'s `URL`.
-    ///   - method:          `HTTPMethod` for the `URLRequest`. `.get` by default.
-    ///   - parameters:      `Parameters` (a.k.a. `[String: Any]`) value to be encoded into the `URLRequest`. `nil` by
-    ///                      default.
-    ///   - encoding:        `ParameterEncoding` to be used to encode the `parameters` value into the `URLRequest`.
-    ///                      `URLEncoding.default` by default.
-    ///   - headers:         `HTTPHeaders` value to be added to the `URLRequest`. `nil` by default.
-    ///   - interceptor:     `RequestInterceptor` value to be used by the returned `DataRequest`. `nil` by default.
-    ///   - requestModifier: `RequestModifier` which will be applied to the `URLRequest` created from the provided
-    ///                      parameters. `nil` by default.
-    ///
-    /// - Returns:       The created `DataRequest`.
+    // 这个方法, 和上面的最大不同, 就是参数一个是 model 的方式出现的, 一个是字典的形式出现的.
     open func request(_ convertible: URLConvertible,
                       method: HTTPMethod = .get,
                       parameters: Parameters? = nil,
@@ -308,19 +294,8 @@ open class Session {
         }
     }
 
-    /// Creates a `DataRequest` from a `URLRequest` created using the passed components, `Encodable` parameters, and a
-    /// `RequestInterceptor`.
-    ///
-    /// - Parameters:
-    ///   - convertible: `URLConvertible` value to be used as the `URLRequest`'s `URL`.
-    ///   - method:      `HTTPMethod` for the `URLRequest`. `.get` by default.
-    ///   - parameters:  `Encodable` value to be encoded into the `URLRequest`. `nil` by default.
-    ///   - encoder:     `ParameterEncoder` to be used to encode the `parameters` value into the `URLRequest`.
-    ///                  `URLEncodedFormParameterEncoder.default` by default.
-    ///   - headers:     `HTTPHeaders` value to be added to the `URLRequest`. `nil` by default.
-    ///   - interceptor: `RequestInterceptor` value to be used by the returned `DataRequest`. `nil` by default.
-    ///
-    /// - Returns:       The created `DataRequest`.
+    // 核心方法
+    // 对于这种多参数的情况, 作者主动进行了换行. 所以, 为了 clean code 换行没有问题.
     open func request<Parameters: Encodable>(_ convertible: URLConvertible,
                                              method: HTTPMethod = .get,
                                              parameters: Parameters? = nil,
@@ -347,7 +322,7 @@ open class Session {
     /// - Returns:       The created `DataRequest`.
     open func request(_ convertible: URLRequestConvertible, interceptor: RequestInterceptor? = nil) -> DataRequest {
         let request = DataRequest(convertible: convertible,
-                                  underlyingQueue: rootQueue,
+                                  underlyingQueue: rootQueue, // 一个线性的 queue
                                   serializationQueue: serializationQueue,
                                   eventMonitor: eventMonitor,
                                   interceptor: interceptor,
