@@ -246,6 +246,7 @@ open class Interceptor: RequestInterceptor {
         adapt(urlRequest, for: session, using: adapters, completion: completion)
     }
 
+    // 不断的使用, Adapater, 进行 Request 的修改的动作. 
     private func adapt(_ urlRequest: URLRequest,
                        for session: Session,
                        using adapters: [RequestAdapter],

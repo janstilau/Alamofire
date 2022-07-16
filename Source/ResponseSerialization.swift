@@ -188,7 +188,8 @@ extension DataRequest {
     ///
     /// - Returns:             The request.
     @discardableResult
-    public func response(queue: DispatchQueue = .main, completionHandler: @escaping (AFDataResponse<Data?>) -> Void) -> Self {
+    public func response(queue: DispatchQueue = .main,
+                         completionHandler: @escaping (AFDataResponse<Data?>) -> Void) -> Self {
         appendResponseSerializer {
             // Start work that should be on the serialization queue.
             let result = AFResult<Data?>(value: self.data, error: self.error)
@@ -203,7 +204,6 @@ extension DataRequest {
                                             result: result)
 
                 self.eventMonitor?.request(self, didParseResponse: response)
-
                 self.responseSerializerDidComplete { queue.async { completionHandler(response) } }
             }
         }
