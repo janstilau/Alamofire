@@ -653,9 +653,9 @@ public class Request {
             
             guard let task = mutableState.tasks.last,
                   task.state != .completed else {
-                underlyingQueue.async { self.finish() }
-                return
-            }
+                      underlyingQueue.async { self.finish() }
+                      return
+                  }
             
             // Resume to ensure metrics are gathered.
             task.resume()
