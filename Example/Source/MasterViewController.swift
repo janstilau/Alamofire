@@ -76,6 +76,7 @@ class MasterViewController: UITableViewController {
                 }
             }
 
+            // 在每次进入到新的页面的时候, 生成了不同页面的 Request 请求. 
             if let request = requestForSegue(segue) {
                 detailViewController.request = request
             }
