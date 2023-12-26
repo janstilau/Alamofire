@@ -237,7 +237,8 @@ extension DataRequest {
                                             result: result)
 
                 self.eventMonitor?.request(self, didParseResponse: response)
-
+                
+                // 下面就是错误的处理了. 
                 guard !self.isCancelled, let serializerError = result.failure, let delegate = self.delegate else {
                     self.responseSerializerDidComplete { queue.async { completionHandler(response) } }
                     return

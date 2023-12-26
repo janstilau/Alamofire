@@ -247,6 +247,7 @@ open class Session {
     /// Closure which provides a `URLRequest` for mutation.
     public typealias RequestModifier = (inout URLRequest) throws -> Void
 
+    // 这里实现了原来的类似于 AFN Request 序列化起的作用. 不过现在都是 protocol 了.
     struct RequestConvertible: URLRequestConvertible {
         let url: URLConvertible
         let method: HTTPMethod
@@ -990,6 +991,8 @@ open class Session {
     /// Starts performing the provided `Request`.
     ///
     /// - Parameter request: The `Request` to perform.
+    
+    // 在这里, 做 Session 对于 Request 的统一管理.
     func perform(_ request: Request) {
         rootQueue.async {
             guard !request.isCancelled else { return }
@@ -997,6 +1000,7 @@ open class Session {
             self.activeRequests.insert(request)
 
             self.requestQueue.async {
+                // 根据 Request 的类型, 来完成不同的
                 // Leaf types must come first, otherwise they will cast as their superclass.
                 switch request {
                 case let r as UploadRequest: self.performUploadRequest(r) // UploadRequest must come before DataRequest due to subtype relationship.
@@ -1099,6 +1103,7 @@ open class Session {
 
         guard !request.isCancelled else { return }
 
+        // 在这里, 才真正的做 URLSession 相关的 Task 的初始化. 
         let task = request.task(for: urlRequest, using: session)
         requestTaskMap[request] = task
         request.didCreateTask(task)
