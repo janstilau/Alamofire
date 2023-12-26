@@ -27,6 +27,19 @@ import Foundation
 /// replacing spaces with `%20`.
 ///
 /// This type is largely based on Vapor's [`url-encoded-form`](https://github.com/vapor/url-encoded-form) project.
+/*
+ 一个用于将实例编码成 URL 编码查询字符串的对象。
+
+ ArrayEncoding 可用于配置如何编码 Array 值。默认情况下，使用 .brackets 编码，为每个数组值编码括号，例如 array[]=1&array[]=2。
+ BoolEncoding 可用于配置如何编码 Bool 值。默认情况下，使用 .numeric 编码，将 true 编码为 1，将 false 编码为 0。
+ DataEncoding 可用于配置如何编码 Data 值。默认情况下，使用 .deferredToData 编码，它使用 Data 值的默认 Encodable 实现进行编码。
+ DateEncoding 可用于配置如何编码 Date 值。默认情况下，使用 .deferredToDate 编码，它使用 Date 的默认 Encodable 实现进行编码。
+ KeyEncoding 可用于配置如何编码键。默认情况下，使用 .useDefaultKeys 编码，它直接从 Encodable 实现中编码键。
+ KeyPathEncoding 可用于配置如何编码嵌套对象内的路径。默认情况下，使用 .brackets 编码，它用括号编码每个子键。例如 parent[child][grandchild]=value。
+ NilEncoding 可用于配置如何编码 nil 的 Optional 值。默认情况下，使用 .dropKey 编码，它完全从输出中丢弃 nil 键/值对。
+ SpaceEncoding 可用于配置如何编码空格。默认情况下，使用 .percentEscaped 编码，用 %20 替换空格。
+ 这种类型在很大程度上基于 Vapor 的 url-encoded-form 项目。
+ */
 public final class URLEncodedFormEncoder {
     /// Encoding to use for `Array` values.
     public enum ArrayEncoding {
@@ -347,6 +360,8 @@ public final class URLEncodedFormEncoder {
         }
     }
 
+    // 整个的 Encode 的过程, 其实都是交给了对应的编码器的.
+    // URL 的 Encode 其实是一个比较复杂的过程. 这里不多做考虑. 
     /// Whether or not to sort the encoded key value pairs.
     ///
     /// - Note: This setting ensures a consistent ordering for all encodings of the same parameters. When set to `false`,

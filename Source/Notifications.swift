@@ -1,5 +1,7 @@
 import Foundation
 
+// 不一定要将 Notification 用 extension Notification.Name 的方式进行添加.
+// 和类型相关的, 也可以直接在相关类型下, 进行 static 值的定义.
 extension Request {
     /// Posted when a `Request` is resumed. The `Notification` contains the resumed `Request`.
     public static let didResumeNotification = Notification.Name(rawValue: "org.alamofire.notification.name.request.didResume")

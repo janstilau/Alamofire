@@ -23,6 +23,7 @@
 //
 
 /// Type that acts as a generic extension point for all `AlamofireExtended` types.
+// 这里在其他的协议里面, 其实叫做 base.
 public struct AlamofireExtension<ExtendedType> {
     /// Stores the type or meta-type of any extended type.
     public private(set) var type: ExtendedType

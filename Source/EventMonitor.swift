@@ -198,6 +198,8 @@ public protocol EventMonitor {
     func request<Value>(_ request: DownloadRequest, didParseResponse response: DownloadResponse<Value, AFError>)
 }
 
+// 大部分的接口, 都是可以不实现的.
+// 因为这就是一个可配置的接口. 所以, 不应该强制实现.
 extension EventMonitor {
     /// The default queue on which `CompositeEventMonitor`s will call the `EventMonitor` methods. `.main` by default.
     public var queue: DispatchQueue { .main }
@@ -297,6 +299,7 @@ public final class CompositeEventMonitor: EventMonitor {
         self.monitors = monitors
     }
     
+    // 写一个公开的方法, 触发所有的 EventMonitor 响应的行为.
     func performEvent(_ event: @escaping (EventMonitor) -> Void) {
         queue.async {
             for monitor in self.monitors {
@@ -552,6 +555,8 @@ public final class CompositeEventMonitor: EventMonitor {
 }
 
 /// `EventMonitor` that allows optional closures to be set to receive events.
+
+// 使用闭包的形式, 对所有的事件, 进行自定义的处理.
 open class ClosureEventMonitor: EventMonitor {
     /// Closure called on the `urlSession(_:didBecomeInvalidWithError:)` event.
     open var sessionDidBecomeInvalidWithError: ((URLSession, Error?) -> Void)?

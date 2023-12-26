@@ -18,6 +18,8 @@ public protocol ParameterEncoder {
 ///
 /// If no `Content-Type` header is already set on the provided `URLRequest`s, it's set to `application/json`.
 open class JSONParameterEncoder: ParameterEncoder {
+    // 提供几个工厂函数, 来获取默认行为的 Encoder.
+    // Encoder 是没有状态的. 所以不断地重建是一个正常的行为.
     /// Returns an encoder with default parameters.
     public static var `default`: JSONParameterEncoder { JSONParameterEncoder() }
     
@@ -82,6 +84,7 @@ extension ParameterEncoder where Self == JSONParameterEncoder {
     }
 }
 
+// 使用表单的方式, 可以是 encode 到 URL 里面, 也可以是 encode 到 body 里面.
 /// A `ParameterEncoder` that encodes types as URL-encoded query strings to be set on the URL or as body data, depending
 /// on the `Destination` set.
 ///
@@ -89,7 +92,6 @@ extension ParameterEncoder where Self == JSONParameterEncoder {
 /// `application/x-www-form-urlencoded; charset=utf-8`.
 ///
 /// Encoding behavior can be customized by passing an instance of `URLEncodedFormEncoder` to the initializer.
-// 这里就是 Form 表单的 encode 的方式
 open class URLEncodedFormParameterEncoder: ParameterEncoder {
     /// Defines where the URL-encoded string should be set for each `URLRequest`.
     public enum Destination {
@@ -135,6 +137,7 @@ open class URLEncodedFormParameterEncoder: ParameterEncoder {
         self.destination = destination
     }
     
+    // 真正的处理过程. 
     open func encode<Parameters: Encodable>(_ parameters: Parameters?,
                                             into request: URLRequest) throws -> URLRequest {
         guard let parameters = parameters else { return request }
@@ -150,16 +153,23 @@ open class URLEncodedFormParameterEncoder: ParameterEncoder {
             throw AFError.parameterEncoderFailed(reason: .missingRequiredComponent(.httpMethod(rawValue: rawValue)))
         }
         
+        // 判断, 是将参数添加到 URL 里面, 还是添加到 Body 里面.
         if destination.encodesParametersInURL(for: method),
            var components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
-            // 在 URL 里面添加 params 的信息.
-            // 因为这里都是 throws, 所以这里都用 try. 
+            
+            // 真正的处理过程, 在 encoder.encode(parameters) 里面, 如果 encoder.encode 出错了, 会构建一个 Result 对象.
+            // Result 对象, 会继续后方的变形, 然后在 GET 的时候, 又会真正的触发 throws
             let query: String = try Result<String, Error> { try encoder.encode(parameters) }
                 .mapError { AFError.parameterEncoderFailed(reason: .encoderFailed(error: $0)) }.get()
             /*
              components.percentEncodedQuery 是 URL 里面的参数部分.
              query 是传递过来的参数部分, 变为的字符串.
              */
+            /*
+             percentEncodedQuery
+             获取此属性时，会保留此组件可能具有的任何百分比编码。设置此属性时，假定组件字符串已正确进行百分比编码。尝试设置一个不正确的百分比编码字符串将导致 fatalError。虽然 ; 是一个合法的路径字符，但为了最佳兼容性，建议对其进行百分比编码（如果传递 CharacterSet.urlQueryAllowed，String.addingPercentEncoding(withAllowedCharacters:) 会对任何 ; 字符进行百分比编码）。
+             */
+            // newQueryString 会是原本的 URL 的参数, 和 params 的参数拼接的结果.
             let newQueryString = [components.percentEncodedQuery, query].compactMap { $0 }.joinedWithAmpersands()
             components.percentEncodedQuery = newQueryString.isEmpty ? nil : newQueryString
             
@@ -173,6 +183,7 @@ open class URLEncodedFormParameterEncoder: ParameterEncoder {
                 request.headers.update(.contentType("application/x-www-form-urlencoded; charset=utf-8"))
             }
             
+            // 将 params 的编码结果, 放到 Request 的 Body 部分.
             request.httpBody = try Result<Data, Error> { try encoder.encode(parameters) }
                 .mapError { AFError.parameterEncoderFailed(reason: .encoderFailed(error: $0)) }.get()
         }

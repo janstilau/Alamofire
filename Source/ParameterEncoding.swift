@@ -1,6 +1,8 @@
 import Foundation
 
 /// A dictionary of parameters to apply to a `URLRequest`.
+// ParameterEncoder 是一个, 将 Encoding 对象变为参数的协议.
+// 这里, 则是将 [String: Any] 变为参数的协议.
 public typealias Parameters = [String: Any]
 
 /// A type used to define how a set of parameters are applied to a `URLRequest`.
@@ -18,6 +20,13 @@ public protocol ParameterEncoding {
 
 // MARK: -
 
+/*
+ 创建一个 URL 编码的查询字符串，用于设置或追加到任何现有的 URL 查询字符串，或设置为 URL 请求的 HTTP 正文。查询字符串是设置还是追加到任何现有的 URL 查询字符串，或作为 HTTP 正文设置，取决于编码的目标。
+
+ 当带有 HTTP 正文的请求被编码时，Content-Type HTTP 头字段被设置为 application/x-www-form-urlencoded; charset=utf-8。
+ 没有发布具体规范说明如何编码集合类型。默认情况下，会使用一种约定，即对数组值在键后面追加 []（例如 foo[]=1&foo[]=2），以及对嵌套字典值在键周围追加方括号（例如 foo[bar]=baz）。可选地，可以使用 ArrayEncoding 来省略追加到数组键的方括号。
+ BoolEncoding 可用于配置布尔值的编码方式。默认行为是将 true 编码为 1，将 false 编码为 0。
+ */
 /// Creates a url-encoded query string to be set as or appended to any existing URL query string or set as the HTTP
 /// body of the URL request. Whether the query string is set or appended to any existing URL query string or set as
 /// the HTTP body depends on the destination of the encoding.
@@ -81,6 +90,7 @@ public struct URLEncoding: ParameterEncoding {
     }
 
     /// Configures how `Bool` parameters are encoded.
+    // 如何去 Encode 一个 Bool 值.
     public enum BoolEncoding {
         /// Encode `true` as `1` and `false` as `0`. This is the default behavior.
         case numeric
@@ -137,6 +147,7 @@ public struct URLEncoding: ParameterEncoding {
     // MARK: Encoding
 
     public func encode(_ urlRequest: URLRequestConvertible, with parameters: Parameters?) throws -> URLRequest {
+        // 使用这种方式, 可以将 URLRequest 的生成后置. 不用每次函数调用的时候, 都显式地进行相关值的生成.
         var urlRequest = try urlRequest.asURLRequest()
 
         guard let parameters = parameters else { return urlRequest }
@@ -147,6 +158,7 @@ public struct URLEncoding: ParameterEncoding {
             }
 
             if var urlComponents = URLComponents(url: url, resolvingAgainstBaseURL: false), !parameters.isEmpty {
+                // 将 URL 里面的查询字符串. 和 query(parameters) 生成的查询字符串, 在这里进行拼接.
                 let percentEncodedQuery = (urlComponents.percentEncodedQuery.map { $0 + "&" } ?? "") + query(parameters)
                 urlComponents.percentEncodedQuery = percentEncodedQuery
                 urlRequest.url = urlComponents.url
@@ -171,6 +183,7 @@ public struct URLEncoding: ParameterEncoding {
     /// - Returns: The percent-escaped, URL encoded query string components.
     public func queryComponents(fromKey key: String, value: Any) -> [(String, String)] {
         var components: [(String, String)] = []
+        // 根据 value 的值, 要做不同的区分.
         switch value {
         case let dictionary as [String: Any]:
             for (nestedKey, value) in dictionary {
@@ -203,6 +216,7 @@ public struct URLEncoding: ParameterEncoding {
         string.addingPercentEncoding(withAllowedCharacters: .afURLQueryAllowed) ?? string
     }
 
+    // 这里其实就是最熟悉的做法了.
     private func query(_ parameters: [String: Any]) -> String {
         var components: [(String, String)] = []
 

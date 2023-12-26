@@ -173,6 +173,8 @@ extension HTTPHeaders: CustomStringConvertible {
 // MARK: - HTTPHeader
 
 /// A representation of a single HTTP header's name / value pair.
+// 如果, 一个结构体的内部都是可以 hash 的类型, 那么这个结构体可以自动的进行 Hash.
+// 其实就是使用默认的算法进行 hash.
 public struct HTTPHeader: Hashable {
     /// Name of the header.
     public let name: String
@@ -314,6 +316,7 @@ extension HTTPHeader {
     }
 }
 
+//
 extension Array where Element == HTTPHeader {
     /// Case-insensitively finds the index of an `HTTPHeader` with the provided name, if it exists.
     func index(of name: String) -> Int? {

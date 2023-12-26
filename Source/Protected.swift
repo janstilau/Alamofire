@@ -11,6 +11,7 @@ extension Lock {
     /// - Parameter closure: The closure to run.
     ///
     /// - Returns:           The value the closure generated.
+    // 通过闭包的返回值, 来确定返回值的类型, 这是一个非常常见的思路.
     func around<T>(_ closure: () throws -> T) rethrows -> T {
         lock(); defer { unlock() }
         return try closure()
@@ -99,6 +100,7 @@ final class Protected<T> {
     /// - Returns:           The modified value.
     @discardableResult
     func write<U>(_ closure: (inout T) throws -> U) rethrows -> U {
+        // 这里传递引用过去, 所以可以进行值的覆盖. 
         try lock.around { try closure(&self.value) }
     }
 
