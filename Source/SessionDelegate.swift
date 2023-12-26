@@ -1,7 +1,7 @@
 import Foundation
 
 /// Class which implements the various `URLSessionDelegate` methods to connect various Alamofire features.
-// 在 AFN 里面, 真正的和 URLSession 打交道的, 被包装成为了一个 Delegate 类, 在 Alamofire 里面同样的思路. 
+// 在 AFN 里面, 真正的和 URLSession 打交道的, 被包装成为了一个 Delegate 类, 在 Alamofire 里面同样的思路.
 open class SessionDelegate: NSObject {
     private let fileManager: FileManager
 
@@ -45,11 +45,10 @@ protocol SessionStateProvider: AnyObject {
 }
 
 // MARK: URLSessionDelegate
-
+// 以下则是在 URLSession 的各个事件里面, 触发对应的方法.
 extension SessionDelegate: URLSessionDelegate {
     open func urlSession(_ session: URLSession, didBecomeInvalidWithError error: Error?) {
         eventMonitor?.urlSession(session, didBecomeInvalidWithError: error)
-
         stateProvider?.cancelRequestsForSessionInvalidation(with: error)
     }
 }
@@ -70,6 +69,20 @@ extension SessionDelegate: URLSessionTaskDelegate {
         switch challenge.protectionSpace.authenticationMethod {
         case NSURLAuthenticationMethodHTTPBasic, NSURLAuthenticationMethodHTTPDigest, NSURLAuthenticationMethodNTLM,
              NSURLAuthenticationMethodNegotiate:
+            /*
+             NSURLAuthenticationMethodHTTPBasic:
+             代表：基本认证（Basic Authentication）。
+             例子：一个客户端向服务器发送请求，服务器响应一个需要认证的状态码（如 401 Unauthorized）。客户端随后发送带有 Authorization: Basic [Base64编码的用户名:密码] 头部的请求。
+             NSURLAuthenticationMethodHTTPDigest:
+             代表：摘要认证（Digest Authentication）。
+             例子：客户端请求资源，服务器返回一个挑战（challenge），包含一个特定域（realm）和一个随机数（nonce）。客户端使用用户名、密码、随机数、请求方法和请求的 URI 生成响应（response），并将这个响应发送回服务器以验证。
+             NSURLAuthenticationMethodNTLM:
+             代表：NT LAN Manager（NTLM）认证，主要用于Windows网络。
+             例子：客户端发送请求，服务器响应要求 NTLM 认证。客户端发送一个包含 NTLM 消息的请求，服务器验证这个消息并返回认证状态。
+             NSURLAuthenticationMethodNegotiate:
+             代表：协商认证，一种集成的认证框架（通常是 Kerberos 或者 NTLM）。
+             例子：客户端发送请求，服务器返回一个协商认证的挑战。客户端使用支持的认证机制（如 Kerberos）响应挑战，服务器验证并授予访问权限
+             */
             evaluation = attemptCredentialAuthentication(for: challenge, belongingTo: task)
         #if canImport(Security)
         case NSURLAuthenticationMethodServerTrust:
@@ -103,6 +116,7 @@ extension SessionDelegate: URLSessionTaskDelegate {
             return (.performDefaultHandling, nil, nil)
         }
 
+        // 将服务器证书验证的逻辑, 都封装到了 evaluator 这个类里面了.
         do {
             guard let evaluator = try stateProvider?.serverTrustManager?.serverTrustEvaluator(forHost: host) else {
                 return (.performDefaultHandling, nil, nil)
@@ -136,18 +150,20 @@ extension SessionDelegate: URLSessionTaskDelegate {
 
         return (.useCredential, credential, nil)
     }
-
+    
+    // 发送过程, 不断地触发这里.
     open func urlSession(_ session: URLSession,
                          task: URLSessionTask,
                          didSendBodyData bytesSent: Int64,
                          totalBytesSent: Int64,
                          totalBytesExpectedToSend: Int64) {
+        // 使用 eventMonitor 通知外界.
         eventMonitor?.urlSession(session,
                                  task: task,
                                  didSendBodyData: bytesSent,
                                  totalBytesSent: totalBytesSent,
                                  totalBytesExpectedToSend: totalBytesExpectedToSend)
-
+        // 使用 Session 对象, 通知外界.
         stateProvider?.request(for: task)?.updateUploadProgress(totalBytesSent: totalBytesSent,
                                                                 totalBytesExpectedToSend: totalBytesExpectedToSend)
     }

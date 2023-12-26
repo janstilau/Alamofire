@@ -1,27 +1,3 @@
-//
-//  Session.swift
-//
-//  Copyright (c) 2014-2018 Alamofire Software Foundation (http://alamofire.org/)
-//
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
-//
-
 import Foundation
 
 /// `Session` creates and manages Alamofire's `Request` types during their lifetimes. It also provides common
@@ -30,7 +6,7 @@ import Foundation
 open class Session {
     /// Shared singleton instance used by all `AF.request` APIs. Cannot be modified.
     public static let `default` = Session()
-
+    
     /// Underlying `URLSession` used to create `URLSessionTasks` for this instance, and for which this instance's
     /// `delegate` handles `URLSessionDelegate` callbacks.
     ///
@@ -64,15 +40,16 @@ open class Session {
     /// `CompositeEventMonitor` used to compose Alamofire's `defaultEventMonitors` and any passed `EventMonitor`s.
     public let eventMonitor: CompositeEventMonitor
     /// `EventMonitor`s included in all instances. `[AlamofireNotifications()]` by default.
+    // AlamofireNotifications 会在每个事件发生的时候, 发送对应的通知.
     public let defaultEventMonitors: [EventMonitor] = [AlamofireNotifications()]
-
+    
     /// Internal map between `Request`s and any `URLSessionTasks` that may be in flight for them.
     var requestTaskMap = RequestTaskMap()
     /// `Set` of currently active `Request`s.
     var activeRequests: Set<Request> = []
     /// Completion events awaiting `URLSessionTaskMetrics`.
     var waitingCompletions: [URLSessionTask: () -> Void] = [:]
-
+    
     /// Creates a `Session` from a `URLSession` and other parameters.
     ///
     /// - Note: When passing a `URLSession`, you must create the `URLSession` with a specific `delegateQueue` value and
@@ -120,7 +97,7 @@ open class Session {
                      "Alamofire does not support background URLSessionConfigurations.")
         precondition(session.delegateQueue.underlyingQueue === rootQueue,
                      "Session(session:) initializer must be passed the DispatchQueue used as the delegateQueue's underlyingQueue as rootQueue.")
-
+        
         self.session = session
         self.delegate = delegate
         self.rootQueue = rootQueue
@@ -132,10 +109,11 @@ open class Session {
         self.redirectHandler = redirectHandler
         self.cachedResponseHandler = cachedResponseHandler
         eventMonitor = CompositeEventMonitor(monitors: defaultEventMonitors + eventMonitors)
+        // 在这里, 将
         delegate.eventMonitor = eventMonitor
         delegate.stateProvider = self
     }
-
+    
     /// Creates a `Session` from a `URLSessionConfiguration`.
     ///
     /// - Note: This initializer lets Alamofire handle the creation of the underlying `URLSession` and its
@@ -182,13 +160,15 @@ open class Session {
                             cachedResponseHandler: CachedResponseHandler? = nil,
                             eventMonitors: [EventMonitor] = []) {
         precondition(configuration.identifier == nil, "Alamofire does not support background URLSessionConfigurations.")
-
+        
         // Retarget the incoming rootQueue for safety, unless it's the main queue, which we know is safe.
         let serialRootQueue = (rootQueue === DispatchQueue.main) ? rootQueue : DispatchQueue(label: rootQueue.label,
                                                                                              target: rootQueue)
         let delegateQueue = OperationQueue(maxConcurrentOperationCount: 1, underlyingQueue: serialRootQueue, name: "\(serialRootQueue.label).sessionDelegate")
+        // 在这里, 将 URLSession 和 delegate 进行了链接.
+        // 而 Delegate 又通过协议, 和 Session 进行了链接.
         let session = URLSession(configuration: configuration, delegate: delegate, delegateQueue: delegateQueue)
-
+        
         self.init(session: session,
                   delegate: delegate,
                   rootQueue: serialRootQueue,
@@ -201,14 +181,14 @@ open class Session {
                   cachedResponseHandler: cachedResponseHandler,
                   eventMonitors: eventMonitors)
     }
-
+    
     deinit {
         finishRequestsForDeinit()
         session.invalidateAndCancel()
     }
-
+    
     // MARK: - All Requests API
-
+    
     /// Perform an action on all active `Request`s.
     ///
     /// - Note: The provided `action` closure is performed asynchronously, meaning that some `Request`s may complete and
@@ -218,12 +198,14 @@ open class Session {
     ///
     /// - Parameters:
     ///   - action:     Closure to perform with all `Request`s.
+    // 各种 with 相关的方法, 其实都是在对应的环境内, 做相关的修改操作.
+    // 这是一个值得模仿的点.
     public func withAllRequests(perform action: @escaping (Set<Request>) -> Void) {
         rootQueue.async {
             action(self.activeRequests)
         }
     }
-
+    
     /// Cancel all active `Request`s, optionally calling a completion handler when complete.
     ///
     /// - Note: This is an asynchronous operation and does not block the creation of future `Request`s. Cancelled
@@ -241,13 +223,14 @@ open class Session {
             }
         }
     }
-
+    
     // MARK: - DataRequest
-
+    
     /// Closure which provides a `URLRequest` for mutation.
     public typealias RequestModifier = (inout URLRequest) throws -> Void
-
-    // 这里实现了原来的类似于 AFN Request 序列化起的作用. 不过现在都是 protocol 了.
+    
+    // 不一定, 非要使用特定的 Model.
+    // 在对应的场景里面, 进行自己的 Model 或者 Struct 的构建, 其实是一个良好的设计. 
     struct RequestConvertible: URLRequestConvertible {
         let url: URLConvertible
         let method: HTTPMethod
@@ -255,15 +238,15 @@ open class Session {
         let encoding: ParameterEncoding
         let headers: HTTPHeaders?
         let requestModifier: RequestModifier?
-
+        
         func asURLRequest() throws -> URLRequest {
             var request = try URLRequest(url: url, method: method, headers: headers)
             try requestModifier?(&request)
-
+            
             return try encoding.encode(request, with: parameters)
         }
     }
-
+    
     /// Creates a `DataRequest` from a `URLRequest` created using the passed components and a `RequestInterceptor`.
     ///
     /// - Parameters:
@@ -292,10 +275,10 @@ open class Session {
                                              encoding: encoding,
                                              headers: headers,
                                              requestModifier: requestModifier)
-
+        
         return request(convertible, interceptor: interceptor)
     }
-
+    
     struct RequestEncodableConvertible<Parameters: Encodable>: URLRequestConvertible {
         let url: URLConvertible
         let method: HTTPMethod
@@ -303,15 +286,15 @@ open class Session {
         let encoder: ParameterEncoder
         let headers: HTTPHeaders?
         let requestModifier: RequestModifier?
-
+        
         func asURLRequest() throws -> URLRequest {
             var request = try URLRequest(url: url, method: method, headers: headers)
             try requestModifier?(&request)
-
+            
             return try parameters.map { try encoder.encode($0, into: request) } ?? request
         }
     }
-
+    
     /// Creates a `DataRequest` from a `URLRequest` created using the passed components, `Encodable` parameters, and a
     /// `RequestInterceptor`.
     ///
@@ -340,10 +323,10 @@ open class Session {
                                                       encoder: encoder,
                                                       headers: headers,
                                                       requestModifier: requestModifier)
-
+        
         return request(convertible, interceptor: interceptor)
     }
-
+    
     /// Creates a `DataRequest` from a `URLRequestConvertible` value and a `RequestInterceptor`.
     ///
     /// - Parameters:
@@ -358,14 +341,14 @@ open class Session {
                                   eventMonitor: eventMonitor,
                                   interceptor: interceptor,
                                   delegate: self)
-
+        
         perform(request)
-
+        
         return request
     }
-
+    
     // MARK: - DataStreamRequest
-
+    
     /// Creates a `DataStreamRequest` from the passed components, `Encodable` parameters, and `RequestInterceptor`.
     ///
     /// - Parameters:
@@ -398,12 +381,12 @@ open class Session {
                                                       encoder: encoder,
                                                       headers: headers,
                                                       requestModifier: requestModifier)
-
+        
         return streamRequest(convertible,
                              automaticallyCancelOnStreamError: automaticallyCancelOnStreamError,
                              interceptor: interceptor)
     }
-
+    
     /// Creates a `DataStreamRequest` from the passed components and `RequestInterceptor`.
     ///
     /// - Parameters:
@@ -430,12 +413,12 @@ open class Session {
                                                       encoder: URLEncodedFormParameterEncoder.default,
                                                       headers: headers,
                                                       requestModifier: requestModifier)
-
+        
         return streamRequest(convertible,
                              automaticallyCancelOnStreamError: automaticallyCancelOnStreamError,
                              interceptor: interceptor)
     }
-
+    
     /// Creates a `DataStreamRequest` from the passed `URLRequestConvertible` value and `RequestInterceptor`.
     ///
     /// - Parameters:
@@ -456,14 +439,14 @@ open class Session {
                                         eventMonitor: eventMonitor,
                                         interceptor: interceptor,
                                         delegate: self)
-
+        
         perform(request)
-
+        
         return request
     }
-
+    
     // MARK: - DownloadRequest
-
+    
     /// Creates a `DownloadRequest` using a `URLRequest` created using the passed components, `RequestInterceptor`, and
     /// `Destination`.
     ///
@@ -496,10 +479,10 @@ open class Session {
                                              encoding: encoding,
                                              headers: headers,
                                              requestModifier: requestModifier)
-
+        
         return download(convertible, interceptor: interceptor, to: destination)
     }
-
+    
     /// Creates a `DownloadRequest` from a `URLRequest` created using the passed components, `Encodable` parameters, and
     /// a `RequestInterceptor`.
     ///
@@ -531,10 +514,10 @@ open class Session {
                                                       encoder: encoder,
                                                       headers: headers,
                                                       requestModifier: requestModifier)
-
+        
         return download(convertible, interceptor: interceptor, to: destination)
     }
-
+    
     /// Creates a `DownloadRequest` from a `URLRequestConvertible` value, a `RequestInterceptor`, and a `Destination`.
     ///
     /// - Parameters:
@@ -554,12 +537,12 @@ open class Session {
                                       interceptor: interceptor,
                                       delegate: self,
                                       destination: destination ?? DownloadRequest.defaultDestination)
-
+        
         perform(request)
-
+        
         return request
     }
-
+    
     /// Creates a `DownloadRequest` from the `resumeData` produced from a previously cancelled `DownloadRequest`, as
     /// well as a `RequestInterceptor`, and a `Destination`.
     ///
@@ -588,43 +571,43 @@ open class Session {
                                       interceptor: interceptor,
                                       delegate: self,
                                       destination: destination ?? DownloadRequest.defaultDestination)
-
+        
         perform(request)
-
+        
         return request
     }
-
+    
     // MARK: - UploadRequest
-
+    
     struct ParameterlessRequestConvertible: URLRequestConvertible {
         let url: URLConvertible
         let method: HTTPMethod
         let headers: HTTPHeaders?
         let requestModifier: RequestModifier?
-
+        
         func asURLRequest() throws -> URLRequest {
             var request = try URLRequest(url: url, method: method, headers: headers)
             try requestModifier?(&request)
-
+            
             return request
         }
     }
-
+    
     struct Upload: UploadConvertible {
         let request: URLRequestConvertible
         let uploadable: UploadableConvertible
-
+        
         func createUploadable() throws -> UploadRequest.Uploadable {
             try uploadable.createUploadable()
         }
-
+        
         func asURLRequest() throws -> URLRequest {
             try request.asURLRequest()
         }
     }
-
+    
     // MARK: Data
-
+    
     /// Creates an `UploadRequest` for the given `Data`, `URLRequest` components, and `RequestInterceptor`.
     ///
     /// - Parameters:
@@ -650,10 +633,10 @@ open class Session {
                                                           method: method,
                                                           headers: headers,
                                                           requestModifier: requestModifier)
-
+        
         return upload(data, with: convertible, interceptor: interceptor, fileManager: fileManager)
     }
-
+    
     /// Creates an `UploadRequest` for the given `Data` using the `URLRequestConvertible` value and `RequestInterceptor`.
     ///
     /// - Parameters:
@@ -670,9 +653,9 @@ open class Session {
                      fileManager: FileManager = .default) -> UploadRequest {
         upload(.data(data), with: convertible, interceptor: interceptor, fileManager: fileManager)
     }
-
+    
     // MARK: File
-
+    
     /// Creates an `UploadRequest` for the file at the given file `URL`, using a `URLRequest` from the provided
     /// components and `RequestInterceptor`.
     ///
@@ -699,10 +682,10 @@ open class Session {
                                                           method: method,
                                                           headers: headers,
                                                           requestModifier: requestModifier)
-
+        
         return upload(fileURL, with: convertible, interceptor: interceptor, fileManager: fileManager)
     }
-
+    
     /// Creates an `UploadRequest` for the file at the given file `URL` using the `URLRequestConvertible` value and
     /// `RequestInterceptor`.
     ///
@@ -720,9 +703,9 @@ open class Session {
                      fileManager: FileManager = .default) -> UploadRequest {
         upload(.file(fileURL, shouldRemove: false), with: convertible, interceptor: interceptor, fileManager: fileManager)
     }
-
+    
     // MARK: InputStream
-
+    
     /// Creates an `UploadRequest` from the `InputStream` provided using a `URLRequest` from the provided components and
     /// `RequestInterceptor`.
     ///
@@ -749,10 +732,10 @@ open class Session {
                                                           method: method,
                                                           headers: headers,
                                                           requestModifier: requestModifier)
-
+        
         return upload(stream, with: convertible, interceptor: interceptor, fileManager: fileManager)
     }
-
+    
     /// Creates an `UploadRequest` from the provided `InputStream` using the `URLRequestConvertible` value and
     /// `RequestInterceptor`.
     ///
@@ -770,9 +753,9 @@ open class Session {
                      fileManager: FileManager = .default) -> UploadRequest {
         upload(.stream(stream), with: convertible, interceptor: interceptor, fileManager: fileManager)
     }
-
+    
     // MARK: MultipartFormData
-
+    
     /// Creates an `UploadRequest` for the multipart form data built using a closure and sent using the provided
     /// `URLRequest` components and `RequestInterceptor`.
     ///
@@ -816,17 +799,17 @@ open class Session {
                                                           method: method,
                                                           headers: headers,
                                                           requestModifier: requestModifier)
-
+        
         let formData = MultipartFormData(fileManager: fileManager)
         multipartFormData(formData)
-
+        
         return upload(multipartFormData: formData,
                       with: convertible,
                       usingThreshold: encodingMemoryThreshold,
                       interceptor: interceptor,
                       fileManager: fileManager)
     }
-
+    
     /// Creates an `UploadRequest` using a `MultipartFormData` building closure, the provided `URLRequestConvertible`
     /// value, and a `RequestInterceptor`.
     ///
@@ -861,14 +844,14 @@ open class Session {
                      fileManager: FileManager = .default) -> UploadRequest {
         let formData = MultipartFormData(fileManager: fileManager)
         multipartFormData(formData)
-
+        
         return upload(multipartFormData: formData,
                       with: request,
                       usingThreshold: encodingMemoryThreshold,
                       interceptor: interceptor,
                       fileManager: fileManager)
     }
-
+    
     /// Creates an `UploadRequest` for the prebuilt `MultipartFormData` value using the provided `URLRequest` components
     /// and `RequestInterceptor`.
     ///
@@ -912,14 +895,14 @@ open class Session {
                                                           method: method,
                                                           headers: headers,
                                                           requestModifier: requestModifier)
-
+        
         let multipartUpload = MultipartUpload(encodingMemoryThreshold: encodingMemoryThreshold,
                                               request: convertible,
                                               multipartFormData: multipartFormData)
-
+        
         return upload(multipartUpload, interceptor: interceptor, fileManager: fileManager)
     }
-
+    
     /// Creates an `UploadRequest` for the prebuilt `MultipartFormData` value using the providing `URLRequestConvertible`
     /// value and `RequestInterceptor`.
     ///
@@ -955,23 +938,23 @@ open class Session {
         let multipartUpload = MultipartUpload(encodingMemoryThreshold: encodingMemoryThreshold,
                                               request: request,
                                               multipartFormData: multipartFormData)
-
+        
         return upload(multipartUpload, interceptor: interceptor, fileManager: fileManager)
     }
-
+    
     // MARK: - Internal API
-
+    
     // MARK: Uploadable
-
+    
     func upload(_ uploadable: UploadRequest.Uploadable,
                 with convertible: URLRequestConvertible,
                 interceptor: RequestInterceptor?,
                 fileManager: FileManager) -> UploadRequest {
         let uploadable = Upload(request: convertible, uploadable: uploadable)
-
+        
         return upload(uploadable, interceptor: interceptor, fileManager: fileManager)
     }
-
+    
     func upload(_ upload: UploadConvertible, interceptor: RequestInterceptor?, fileManager: FileManager) -> UploadRequest {
         let request = UploadRequest(convertible: upload,
                                     underlyingQueue: rootQueue,
@@ -980,14 +963,14 @@ open class Session {
                                     interceptor: interceptor,
                                     fileManager: fileManager,
                                     delegate: self)
-
+        
         perform(request)
-
+        
         return request
     }
-
+    
     // MARK: Perform
-
+    
     /// Starts performing the provided `Request`.
     ///
     /// - Parameter request: The `Request` to perform.
@@ -996,9 +979,9 @@ open class Session {
     func perform(_ request: Request) {
         rootQueue.async {
             guard !request.isCancelled else { return }
-
+            
             self.activeRequests.insert(request)
-
+            
             self.requestQueue.async {
                 // 根据 Request 的类型, 来完成不同的
                 // Leaf types must come first, otherwise they will cast as their superclass.
@@ -1012,22 +995,22 @@ open class Session {
             }
         }
     }
-
+    
     func performDataRequest(_ request: DataRequest) {
         dispatchPrecondition(condition: .onQueue(requestQueue))
-
+        
         performSetupOperations(for: request, convertible: request.convertible)
     }
-
+    
     func performDataStreamRequest(_ request: DataStreamRequest) {
         dispatchPrecondition(condition: .onQueue(requestQueue))
-
+        
         performSetupOperations(for: request, convertible: request.convertible)
     }
-
+    
     func performUploadRequest(_ request: UploadRequest) {
         dispatchPrecondition(condition: .onQueue(requestQueue))
-
+        
         performSetupOperations(for: request, convertible: request.convertible) {
             do {
                 let uploadable = try request.upload.createUploadable()
@@ -1039,10 +1022,10 @@ open class Session {
             }
         }
     }
-
+    
     func performDownloadRequest(_ request: DownloadRequest) {
         dispatchPrecondition(condition: .onQueue(requestQueue))
-
+        
         switch request.downloadable {
         case let .request(convertible):
             performSetupOperations(for: request, convertible: convertible)
@@ -1050,14 +1033,14 @@ open class Session {
             rootQueue.async { self.didReceiveResumeData(resumeData, for: request) }
         }
     }
-
+    
     func performSetupOperations(for request: Request,
                                 convertible: URLRequestConvertible,
                                 shouldCreateTask: @escaping () -> Bool = { true }) {
         dispatchPrecondition(condition: .onQueue(requestQueue))
-
+        
         let initialRequest: URLRequest
-
+        
         do {
             initialRequest = try convertible.asURLRequest()
             try initialRequest.validate()
@@ -1065,67 +1048,67 @@ open class Session {
             rootQueue.async { request.didFailToCreateURLRequest(with: error.asAFError(or: .createURLRequestFailed(error: error))) }
             return
         }
-
+        
         rootQueue.async { request.didCreateInitialURLRequest(initialRequest) }
-
+        
         guard !request.isCancelled else { return }
-
+        
         guard let adapter = adapter(for: request) else {
             guard shouldCreateTask() else { return }
             rootQueue.async { self.didCreateURLRequest(initialRequest, for: request) }
             return
         }
-
+        
         let adapterState = RequestAdapterState(requestID: request.id, session: self)
-
+        
         adapter.adapt(initialRequest, using: adapterState) { result in
             do {
                 let adaptedRequest = try result.get()
                 try adaptedRequest.validate()
-
+                
                 self.rootQueue.async { request.didAdaptInitialRequest(initialRequest, to: adaptedRequest) }
-
+                
                 guard shouldCreateTask() else { return }
-
+                
                 self.rootQueue.async { self.didCreateURLRequest(adaptedRequest, for: request) }
             } catch {
                 self.rootQueue.async { request.didFailToAdaptURLRequest(initialRequest, withError: .requestAdaptationFailed(error: error)) }
             }
         }
     }
-
+    
     // MARK: - Task Handling
-
+    
     func didCreateURLRequest(_ urlRequest: URLRequest, for request: Request) {
         dispatchPrecondition(condition: .onQueue(rootQueue))
-
+        
         request.didCreateURLRequest(urlRequest)
-
+        
         guard !request.isCancelled else { return }
-
-        // 在这里, 才真正的做 URLSession 相关的 Task 的初始化. 
+        
+        // 在这里, 才真正的做 URLSession 相关的 Task 的初始化.
         let task = request.task(for: urlRequest, using: session)
         requestTaskMap[request] = task
         request.didCreateTask(task)
-
+        
         updateStatesForTask(task, request: request)
     }
-
+    
     func didReceiveResumeData(_ data: Data, for request: DownloadRequest) {
         dispatchPrecondition(condition: .onQueue(rootQueue))
-
+        
         guard !request.isCancelled else { return }
-
+        
         let task = request.task(forResumeData: data, using: session)
         requestTaskMap[request] = task
         request.didCreateTask(task)
-
+        
         updateStatesForTask(task, request: request)
     }
-
+    
     func updateStatesForTask(_ task: URLSessionTask, request: Request) {
         dispatchPrecondition(condition: .onQueue(rootQueue))
-
+        
         request.withState { state in
             switch state {
             case .initialized, .finished:
@@ -1145,9 +1128,9 @@ open class Session {
             }
         }
     }
-
+    
     // MARK: - Adapters and Retriers
-
+    
     func adapter(for request: Request) -> RequestAdapter? {
         if let requestInterceptor = request.interceptor, let sessionInterceptor = interceptor {
             return Interceptor(adapters: [requestInterceptor, sessionInterceptor])
@@ -1155,7 +1138,7 @@ open class Session {
             return request.interceptor ?? interceptor
         }
     }
-
+    
     func retrier(for request: Request) -> RequestRetrier? {
         if let requestInterceptor = request.interceptor, let sessionInterceptor = interceptor {
             return Interceptor(retriers: [requestInterceptor, sessionInterceptor])
@@ -1163,9 +1146,9 @@ open class Session {
             return request.interceptor ?? interceptor
         }
     }
-
+    
     // MARK: - Invalidation
-
+    
     func finishRequestsForDeinit() {
         requestTaskMap.requests.forEach { request in
             rootQueue.async {
@@ -1181,38 +1164,38 @@ extension Session: RequestDelegate {
     public var sessionConfiguration: URLSessionConfiguration {
         session.configuration
     }
-
+    
     public var startImmediately: Bool { startRequestsImmediately }
-
+    
     public func cleanup(after request: Request) {
         activeRequests.remove(request)
     }
-
+    
     public func retryResult(for request: Request, dueTo error: AFError, completion: @escaping (RetryResult) -> Void) {
         guard let retrier = retrier(for: request) else {
             rootQueue.async { completion(.doNotRetry) }
             return
         }
-
+        
         retrier.retry(request, for: self, dueTo: error) { retryResult in
             self.rootQueue.async {
                 guard let retryResultError = retryResult.error else { completion(retryResult); return }
-
+                
                 let retryError = AFError.requestRetryFailed(retryError: retryResultError, originalError: error)
                 completion(.doNotRetryWithError(retryError))
             }
         }
     }
-
+    
     public func retryRequest(_ request: Request, withDelay timeDelay: TimeInterval?) {
         rootQueue.async {
             let retry: () -> Void = {
                 guard !request.isCancelled else { return }
-
+                
                 request.prepareForRetry()
                 self.perform(request)
             }
-
+            
             if let retryDelay = timeDelay {
                 self.rootQueue.after(retryDelay) { retry() }
             } else {
@@ -1227,43 +1210,43 @@ extension Session: RequestDelegate {
 extension Session: SessionStateProvider {
     func request(for task: URLSessionTask) -> Request? {
         dispatchPrecondition(condition: .onQueue(rootQueue))
-
+        
         return requestTaskMap[task]
     }
-
+    
     func didGatherMetricsForTask(_ task: URLSessionTask) {
         dispatchPrecondition(condition: .onQueue(rootQueue))
-
+        
         let didDisassociate = requestTaskMap.disassociateIfNecessaryAfterGatheringMetricsForTask(task)
-
+        
         if didDisassociate {
             waitingCompletions[task]?()
             waitingCompletions[task] = nil
         }
     }
-
+    
     func didCompleteTask(_ task: URLSessionTask, completion: @escaping () -> Void) {
         dispatchPrecondition(condition: .onQueue(rootQueue))
-
+        
         let didDisassociate = requestTaskMap.disassociateIfNecessaryAfterCompletingTask(task)
-
+        
         if didDisassociate {
             completion()
         } else {
             waitingCompletions[task] = completion
         }
     }
-
+    
     func credential(for task: URLSessionTask, in protectionSpace: URLProtectionSpace) -> URLCredential? {
         dispatchPrecondition(condition: .onQueue(rootQueue))
-
+        
         return requestTaskMap[task]?.credential ??
-            session.configuration.urlCredentialStorage?.defaultCredential(for: protectionSpace)
+        session.configuration.urlCredentialStorage?.defaultCredential(for: protectionSpace)
     }
-
+    
     func cancelRequestsForSessionInvalidation(with error: Error?) {
         dispatchPrecondition(condition: .onQueue(rootQueue))
-
+        
         requestTaskMap.requests.forEach { $0.finish(error: AFError.sessionInvalidated(error: error)) }
     }
 }
