@@ -57,6 +57,7 @@ public class Request {
     // MARK: - Mutable State
     
     /// Type encapsulating all mutable state that may need to be accessed from anything other than the `underlyingQueue`.
+    // 所有的, 本次网络请求的状态, 都在 MutableState 中进行了管理.
     struct MutableState {
         /// State of the `Request`.
         var state: State = .initialized
@@ -105,6 +106,11 @@ public class Request {
     /// Protected `MutableState` value that provides thread-safe access to state values.
     @Protected
     fileprivate var mutableState = MutableState()
+    
+    /*
+     所有的状态, 都是在 MutableState 中进行存储.
+     然后需要提供各种的属性, 来对 MutableState 里面的值, 进行读取和修改.
+     */
     
     /// `State` of the `Request`.
     public var state: State { $mutableState.state }
@@ -258,6 +264,8 @@ public class Request {
     /// the `URLRequest` will be adapted before being issued.
     ///
     /// - Parameter request: The `URLRequest` created.
+    
+    // 在 Session 中, 会不断地调用 Request 中的方法, 来完成相关状态的修改.
     func didCreateInitialURLRequest(_ request: URLRequest) {
         dispatchPrecondition(condition: .onQueue(underlyingQueue))
         
@@ -515,7 +523,8 @@ public class Request {
     /// - Parameter closure: The closure containing the response serialization call.
     // 在增加了相应的处理之后, 会触发是否进行 Resume 的判断.
     
-    
+    // 在增加了对于相应的处理之后, 才进行的 真正的网络请求.
+    // 也可以外界调用.
     func appendResponseSerializer(_ closure: @escaping () -> Void) {
         $mutableState.write { mutableState in
             mutableState.responseSerializers.append(closure)
@@ -583,6 +592,7 @@ public class Request {
             return
         }
         
+        // serializationQueue 唯一起到作用的地方, 就是在这里.
         serializationQueue.async { responseSerializer() }
     }
     
@@ -707,8 +717,8 @@ public class Request {
             
             underlyingQueue.async { self.didResume() }
             
+            // 这里是真正的, 开启了一个 dataTask 的阶段.
             guard let task = mutableState.tasks.last, task.state != .completed else { return }
-            
             task.resume()
             underlyingQueue.async { self.didResumeTask(task) }
         }
@@ -716,6 +726,9 @@ public class Request {
         return self
     }
     
+    
+    // 各种 API, 都是在做闭包的存储.
+    // 形成链式调用. 
     // MARK: - Closure API
     
     /// Associates a credential using the provided values with the instance.
@@ -1197,6 +1210,8 @@ public class DataRequest: Request {
     /// - Returns:              The instance.
     @discardableResult
     public func validate(_ validation: @escaping Validation) -> Self {
+        // 这里仅仅是收集. 在真正的网络请求结束之后, 会使用 $validators 中存储的值, 做真正的校验.
+        // 最终的结果, 会放到 self.error 中.
         let validator: () -> Void = { [unowned self] in
             guard error == nil, let response = response else { return }
             
@@ -1226,6 +1241,8 @@ public class DataRequest: Request {
     ///
     /// - Returns:   The instance.
     @_disfavoredOverload
+    
+    // 这种编码的方式, 其实是可以利用上的. 通过这种方式, 就是在做存储. 各种 onEvent + 闭包 的方式, 就是在注册回调.
     @discardableResult
     public func onHTTPResponse(
         on queue: DispatchQueue = .main,

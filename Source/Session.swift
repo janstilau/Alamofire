@@ -975,6 +975,7 @@ open class Session {
     ///
     /// - Parameter request: The `Request` to perform.
     
+    // 当使用 Session, 调用 request(...) 的方法的时候, 就回到这里来.
     // 在这里, 做 Session 对于 Request 的统一管理.
     func perform(_ request: Request) {
         rootQueue.async {
@@ -1079,6 +1080,7 @@ open class Session {
     
     // MARK: - Task Handling
     
+    // 在这个方法内, 才真正的去创建对应的 task.
     func didCreateURLRequest(_ urlRequest: URLRequest, for request: Request) {
         dispatchPrecondition(condition: .onQueue(rootQueue))
         
