@@ -5,6 +5,7 @@ import Foundation
 public class Request {
     /// State of the `Request`, with managed transitions between states set when calling `resume()`, `suspend()`, or
     /// `cancel()` on the `Request`.
+    // 这里有点所谓的状态机的管理.
     public enum State {
         /// Initial state of the `Request`.
         case initialized
@@ -41,6 +42,8 @@ public class Request {
     
     // MARK: - Initial State
     
+    // 对于 Request 里面的各种数据, 可变的都在了 MutableState 里面
+    // 不可变的, 都是在初始化的时候确定的.
     /// `UUID` providing a unique identifier for the `Request`, used in the `Hashable` and `Equatable` conformances.
     public let id: UUID
     /// The serial queue for all internal async actions.
@@ -61,10 +64,13 @@ public class Request {
     struct MutableState {
         /// State of the `Request`.
         var state: State = .initialized
+        
+        // 回调这件事, 并不只是简单的存储一下闭包, 还会将调用的位置进行了存储.
         /// `ProgressHandler` and `DispatchQueue` provided for upload progress callbacks.
         var uploadProgressHandler: (handler: ProgressHandler, queue: DispatchQueue)?
         /// `ProgressHandler` and `DispatchQueue` provided for download progress callbacks.
         var downloadProgressHandler: (handler: ProgressHandler, queue: DispatchQueue)?
+        
         /// `RedirectHandler` provided for to handle request redirection.
         var redirectHandler: RedirectHandler?
         /// `CachedResponseHandler` provided to handle response caching.
@@ -726,9 +732,21 @@ public class Request {
         return self
     }
     
-    
+    /// Final cleanup step executed when the instance finishes response serialization.
+    func cleanup() {
+        let handlers = $mutableState.finishHandlers
+        handlers.forEach { $0() }
+        $mutableState.write { state in
+            state.finishHandlers.removeAll()
+        }
+        
+        delegate?.cleanup(after: self)
+    }
+}
+
+extension Request {
     // 各种 API, 都是在做闭包的存储.
-    // 形成链式调用. 
+    // 形成链式调用.
     // MARK: - Closure API
     
     /// Associates a credential using the provided values with the instance.
@@ -799,6 +817,7 @@ public class Request {
     /// - Parameter handler: The `RedirectHandler`.
     ///
     /// - Returns:           The instance.
+    
     @discardableResult
     public func redirect(using handler: RedirectHandler) -> Self {
         $mutableState.write { mutableState in
@@ -924,17 +943,6 @@ public class Request {
         $mutableState.write { state in
             state.finishHandlers.append(finishHandler)
         }
-    }
-    
-    /// Final cleanup step executed when the instance finishes response serialization.
-    func cleanup() {
-        let handlers = $mutableState.finishHandlers
-        handlers.forEach { $0() }
-        $mutableState.write { state in
-            state.finishHandlers.removeAll()
-        }
-        
-        delegate?.cleanup(after: self)
     }
 }
 

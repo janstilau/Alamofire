@@ -335,6 +335,7 @@ open class Session {
     ///
     /// - Returns:       The created `DataRequest`.
     open func request(_ convertible: URLRequestConvertible, interceptor: RequestInterceptor? = nil) -> DataRequest {
+        // 对于 DataRequest 中的两个 Queue, 是使用 Session 中的 Queue 完成的.
         let request = DataRequest(convertible: convertible,
                                   underlyingQueue: rootQueue,
                                   serializationQueue: serializationQueue,
