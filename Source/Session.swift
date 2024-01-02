@@ -1180,6 +1180,7 @@ extension Session: RequestDelegate {
             return
         }
         
+        // 所有的一些, 都是通过接口完成的通信. 
         retrier.retry(request, for: self, dueTo: error) { retryResult in
             self.rootQueue.async {
                 guard let retryResultError = retryResult.error else { completion(retryResult); return }

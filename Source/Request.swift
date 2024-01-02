@@ -46,6 +46,7 @@ public class Request {
     // 不可变的, 都是在初始化的时候确定的.
     /// `UUID` providing a unique identifier for the `Request`, used in the `Hashable` and `Equatable` conformances.
     public let id: UUID
+    // 这个 Queue 就是 Session 里面的 RootQueue
     /// The serial queue for all internal async actions.
     public let underlyingQueue: DispatchQueue
     /// The queue used for all serialization actions. By default it's a serial queue that targets `underlyingQueue`.
@@ -109,6 +110,7 @@ public class Request {
     }
     
     // MutableState 里面的所有状态改变, 都是线程安全的.
+    // 里面不是使用的队列, 而是使用的 lock 完成的同步处理.
     /// Protected `MutableState` value that provides thread-safe access to state values.
     @Protected
     fileprivate var mutableState = MutableState()
@@ -120,6 +122,7 @@ public class Request {
     
     /// `State` of the `Request`.
     public var state: State { $mutableState.state }
+    // 作为类的设计者, 将良好的接口暴露出去, 是很好的设计思路.
     /// Returns whether `state` is `.initialized`.
     public var isInitialized: Bool { state == .initialized }
     /// Returns whether `state is `.resumed`.
@@ -184,6 +187,8 @@ public class Request {
     
     // MARK: URLRequests
     
+    // 实际上, 网络请求是一系列的, 而 Alamofire 是一个请求过程的集合.
+    // 所以, 这里会将所有的请求都进行存储.
     /// All `URLRequests` created on behalf of the `Request`, including original and adapted requests.
     public var requests: [URLRequest] { $mutableState.requests }
     /// First `URLRequest` created on behalf of the `Request`. May not be the first one actually executed.
@@ -273,6 +278,7 @@ public class Request {
     
     // 在 Session 中, 会不断地调用 Request 中的方法, 来完成相关状态的修改.
     func didCreateInitialURLRequest(_ request: URLRequest) {
+        
         dispatchPrecondition(condition: .onQueue(underlyingQueue))
         
         $mutableState.write { $0.requests.append(request) }
@@ -288,6 +294,7 @@ public class Request {
     func didFailToCreateURLRequest(with error: AFError) {
         dispatchPrecondition(condition: .onQueue(underlyingQueue))
         
+        // 如果出错了, 直接就走 retryOrFinish 的结束流程.
         self.error = error
         
         eventMonitor?.request(self, didFailToCreateURLRequestWithError: error)
@@ -302,6 +309,9 @@ public class Request {
     /// - Parameters:
     ///   - initialRequest: The `URLRequest` that was adapted.
     ///   - adaptedRequest: The `URLRequest` returned by the `RequestAdapter`.
+    // 如果在 Session 中, 使用修改器, 会走到这一步.
+    // 记录一下修改完毕的 Request.
+    // 但是, 在 Request 里面, 是记录了所有的 URLRequest 的对象.
     func didAdaptInitialRequest(_ initialRequest: URLRequest, to adaptedRequest: URLRequest) {
         dispatchPrecondition(condition: .onQueue(underlyingQueue))
         
@@ -317,6 +327,7 @@ public class Request {
     /// - Parameters:
     ///   - request: The `URLRequest` the adapter was called with.
     ///   - error:   The `AFError` returned by the `RequestAdapter`.
+    // 如果使用修改器, 没有正确的完成 Request 的创建, 会到这里完成记录, 然后走最后的 retryOrFinish 的步骤.
     func didFailToAdaptURLRequest(_ request: URLRequest, withError error: AFError) {
         dispatchPrecondition(condition: .onQueue(underlyingQueue))
         
@@ -332,6 +343,7 @@ public class Request {
     /// Final `URLRequest` has been created for the instance.
     ///
     /// - Parameter request: The `URLRequest` created.
+    // 记录最终完成的 Request. 然后就是真正的 DataTask 的开启.
     func didCreateURLRequest(_ request: URLRequest) {
         dispatchPrecondition(condition: .onQueue(underlyingQueue))
         
@@ -358,6 +370,7 @@ public class Request {
     /// Called when a `URLSessionTask` is created on behalf of the instance.
     ///
     /// - Parameter task: The `URLSessionTask` created.
+    // 在 Session 完成了 DataTask 的创建之后, 会触发这里,
     func didCreateTask(_ task: URLSessionTask) {
         dispatchPrecondition(condition: .onQueue(underlyingQueue))
         
@@ -371,6 +384,8 @@ public class Request {
         
         eventMonitor?.request(self, didCreateTask: task)
     }
+    
+    // 这里, 并没有进行修改, 只是进行了事件的触发.
     
     /// Called when resumption is completed.
     func didResume() {
@@ -507,6 +522,7 @@ public class Request {
     /// Finishes this `Request` and starts the response serializers.
     ///
     /// - Parameter error: The possible `Error` with which the instance will finish.
+    // 正常结束完成了网络的请求, 会走这里, 进行后续的响应的解析的步骤.
     func finish(error: AFError? = nil) {
         dispatchPrecondition(condition: .onQueue(underlyingQueue))
         
@@ -539,10 +555,12 @@ public class Request {
                 mutableState.state = .resumed
             }
             
+            // 类似 promise 的机制. 如果已经完毕了, 直接触发传入的回调.
             if mutableState.responseSerializerProcessingFinished {
                 underlyingQueue.async { self.processNextResponseSerializer() }
             }
             
+            // 这里才是真正的进行的启动.
             if mutableState.state.canTransitionTo(.resumed) {
                 underlyingQueue.async { if self.delegate?.startImmediately == true { self.resume() } }
             }
@@ -572,6 +590,7 @@ public class Request {
             // Execute all response serializer completions and clear them
             var completions: [() -> Void] = []
             
+            // 这里就是所有的 resp 的解析完毕了.
             $mutableState.write { mutableState in
                 completions = mutableState.responseSerializerCompletions
                 
@@ -590,6 +609,7 @@ public class Request {
                 mutableState.isFinishing = false
             }
             
+            // 在锁内完成取值, 然后在锁外, 调用业务代码.
             completions.forEach { $0() }
             
             // Cleanup the request
@@ -670,6 +690,7 @@ public class Request {
     @discardableResult
     public func cancel() -> Self {
         $mutableState.write { mutableState in
+            // 自身的改变改变了.
             guard mutableState.state.canTransitionTo(.cancelled) else { return }
             
             mutableState.state = .cancelled
@@ -682,6 +703,8 @@ public class Request {
             }
             
             // Resume to ensure metrics are gathered.
+            // 然后真的进行 task 的 cancel 处理.
+            // 在 Session 那里, 还是会收到 cancel 的回调的.
             task.resume()
             task.cancel()
             underlyingQueue.async { self.didCancelTask(task) }
@@ -744,6 +767,7 @@ public class Request {
     }
 }
 
+// Request 是一个状态的集合体, 提供了各种方便的方法, 进行了值的赋值.
 extension Request {
     // 各种 API, 都是在做闭包的存储.
     // 形成链式调用.
@@ -769,6 +793,7 @@ extension Request {
     /// - Parameter credential: The `URLCredential`.
     ///
     /// - Returns:              The instance.
+    // 将 URLCredential 进行存储. 这个存储起来的 URLCredential, 会在收到 challenge 的时候使用.
     @discardableResult
     public func authenticate(with credential: URLCredential) -> Self {
         $mutableState.credential = credential
@@ -1066,6 +1091,7 @@ extension Request {
     }
 }
 
+// 这里是 Session 需要实现的. 
 /// Protocol abstraction for `Request`'s communication back to the `SessionDelegate`.
 public protocol RequestDelegate: AnyObject {
     /// `URLSessionConfiguration` used to create the underlying `URLSessionTask`s.

@@ -1,27 +1,3 @@
-//
-//  ParameterEncoderTests.swift
-//
-//  Copyright (c) 2014-2018 Alamofire Software Foundation (http://alamofire.org/)
-//
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
-//
-
 import Alamofire
 import XCTest
 
@@ -34,6 +10,7 @@ final class JSONParameterEncoderTests: BaseTestCase {
         // When
         let newRequest = try encoder.encode(TestParameters.default, into: request)
 
+        // 经过以上的处理, 就是在对应的 Requeset 里面, 添加了对应的数据.
         // Then
         XCTAssertEqual(newRequest.headers["Content-Type"], "application/json")
         XCTAssertEqual(newRequest.httpBody?.asString, "{\"property\":\"property\"}")
@@ -43,12 +20,14 @@ final class JSONParameterEncoderTests: BaseTestCase {
         // Given
         let encoder = JSONParameterEncoder()
         var request = Endpoint().urlRequest
+        // 如果想要完成属性的修改, 一定要使用 a.b.c.mutaingFuc 的调用. 这样各个 set 方法才会触发.
         request.headers.update(.contentType("type"))
 
         // When
         let newRequest = try encoder.encode(TestParameters.default, into: request)
 
         // Then
+        //
         XCTAssertEqual(newRequest.headers["Content-Type"], "type")
         XCTAssertEqual(newRequest.httpBody?.asString, "{\"property\":\"property\"}")
     }
@@ -57,6 +36,7 @@ final class JSONParameterEncoderTests: BaseTestCase {
         // Given
         let jsonEncoder = JSONEncoder()
         jsonEncoder.outputFormatting = .prettyPrinted
+        // 可以设置自定义的 encoder
         let encoder = JSONParameterEncoder(encoder: jsonEncoder)
         let request = Endpoint().urlRequest
 

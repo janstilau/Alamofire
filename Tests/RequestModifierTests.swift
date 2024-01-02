@@ -1,27 +1,3 @@
-//
-//  RequestModifierTests.swift
-//
-//  Copyright (c) 2020 Alamofire Software Foundation (http://alamofire.org/)
-//
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
-//
-
 import Alamofire
 import XCTest
 
@@ -35,12 +11,15 @@ final class RequestModifierTests: BaseTestCase {
         var response: AFDataResponse<Data?>?
 
         // When
+        // 使用了 modify 对 request 进行了修改.
+        // 设置了超时时间, 然后服务器会一秒后返回.
         AF.request(.delay(1)) { $0.timeoutInterval = 0.01; modified.fulfill() }
             .response { response = $0; completed.fulfill() }
 
         waitForExpectations(timeout: timeout)
 
         // Then
+        // 最后验证, 是超时的错误. 错误的原因, 是 error 里面进行的记录.
         XCTAssertEqual((response?.error?.underlyingError as? URLError)?.code, .timedOut)
     }
 
@@ -48,6 +27,7 @@ final class RequestModifierTests: BaseTestCase {
         // Given
         let inspector = InspectorInterceptor(RetryPolicy(retryLimit: 1, exponentialBackoffScale: 0))
         let session = Session(interceptor: inspector)
+        
         let completed = expectation(description: "request completed")
         let modified = expectation(description: "request should be modified twice")
         modified.expectedFulfillmentCount = 2

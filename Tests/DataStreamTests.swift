@@ -1,27 +1,3 @@
-//
-//  DataStreamTests.swift
-//
-//  Copyright (c) 2020 Alamofire Software Foundation (http://alamofire.org/)
-//
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
-//
-
 import Alamofire
 import XCTest
 
@@ -34,10 +10,12 @@ final class DataStreamTests: BaseTestCase {
         var response: HTTPURLResponse?
         var streamOnMain = false
         var completeOnMain = false
+        
+        // 可以在这里, 创建不同的 expectation. 在不同的阶段, 各自完成自己的 fulfill.
         let didReceiveResponse = expectation(description: "stream should receive response once")
         let didReceive = expectation(description: "stream should receive once")
         let didComplete = expectation(description: "stream should complete")
-
+        
         // When
         AF.streamRequest(.bytes(expectedSize))
             .onHTTPResponse { response in
@@ -59,9 +37,9 @@ final class DataStreamTests: BaseTestCase {
                     didComplete.fulfill()
                 }
             }
-
+        
         wait(for: [didReceiveResponse, didReceive, didComplete], timeout: timeout, enforceOrder: true)
-
+        
         // Then
         XCTAssertEqual(response?.statusCode, 200)
         XCTAssertEqual(initialResponse, response)
@@ -69,12 +47,12 @@ final class DataStreamTests: BaseTestCase {
         XCTAssertTrue(streamOnMain)
         XCTAssertTrue(completeOnMain)
     }
-
+    
     func testThatDataCanBeStreamedByByte() throws {
         guard #available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *) else {
             throw XCTSkip("Older OSes don't return individual bytes.")
         }
-
+        
         // Given
         let expectedSize = 5
         var accumulatedData = Data()
@@ -87,7 +65,7 @@ final class DataStreamTests: BaseTestCase {
         let didReceive = expectation(description: "stream should receive once")
         didReceive.expectedFulfillmentCount = expectedSize
         let didComplete = expectation(description: "stream should complete")
-
+        
         // When
         AF.streamRequest(.chunked(expectedSize))
             .onHTTPResponse { response in
@@ -110,9 +88,9 @@ final class DataStreamTests: BaseTestCase {
                     didComplete.fulfill()
                 }
             }
-
+        
         wait(for: [didReceiveResponse, didReceive, didComplete], timeout: timeout, enforceOrder: true)
-
+        
         // Then
         XCTAssertEqual(response?.statusCode, 200)
         XCTAssertEqual(streamCalled, expectedSize)
@@ -121,12 +99,12 @@ final class DataStreamTests: BaseTestCase {
         XCTAssertTrue(streamOnMain)
         XCTAssertTrue(completeOnMain)
     }
-
+    
     func testThatDataCanBeStreamedAsMultipleJSONPayloads() throws {
         guard #available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *) else {
             throw XCTSkip("Older OSes do not separate chunked payloads in callbacks.")
         }
-
+        
         // Given
         let expectedSize = 5
         var responses: [TestResponse] = []
@@ -139,7 +117,7 @@ final class DataStreamTests: BaseTestCase {
         let didReceive = expectation(description: "stream should receive once")
         didReceive.expectedFulfillmentCount = expectedSize
         let didComplete = expectation(description: "stream should complete")
-
+        
         // When
         AF.streamRequest(.payloads(expectedSize))
             .onHTTPResponse { response in
@@ -164,9 +142,9 @@ final class DataStreamTests: BaseTestCase {
                     didComplete.fulfill()
                 }
             }
-
+        
         wait(for: [didReceiveResponse, didReceive, didComplete], timeout: timeout, enforceOrder: true)
-
+        
         // Then
         XCTAssertEqual(response?.statusCode, 200)
         XCTAssertEqual(streamCalled, expectedSize)
@@ -175,7 +153,7 @@ final class DataStreamTests: BaseTestCase {
         XCTAssertTrue(streamOnMain)
         XCTAssertTrue(completeOnMain)
     }
-
+    
     func testThatDataCanBeStreamedFromURL() {
         // Given
         let expectedSize = 1
@@ -187,7 +165,7 @@ final class DataStreamTests: BaseTestCase {
         let didReceiveResponse = expectation(description: "stream should receive response once")
         let didReceive = expectation(description: "stream should receive")
         let didComplete = expectation(description: "stream should complete")
-
+        
         // When
         AF.streamRequest(.bytes(expectedSize))
             .onHTTPResponse { response in
@@ -209,9 +187,9 @@ final class DataStreamTests: BaseTestCase {
                     didComplete.fulfill()
                 }
             }
-
+        
         wait(for: [didReceiveResponse, didReceive, didComplete], timeout: timeout, enforceOrder: true)
-
+        
         // Then
         XCTAssertEqual(response?.statusCode, 200)
         XCTAssertEqual(accumulatedData.count, expectedSize)
@@ -219,7 +197,7 @@ final class DataStreamTests: BaseTestCase {
         XCTAssertTrue(streamOnMain)
         XCTAssertTrue(completeOnMain)
     }
-
+    
     func testThatDataCanBeStreamedManyTimes() {
         // Given
         let expectedSize = 1
@@ -237,7 +215,7 @@ final class DataStreamTests: BaseTestCase {
         var secondCompleteOnMain = false
         let secondReceive = expectation(description: "second stream should receive")
         let secondCompletion = expectation(description: "second stream should complete")
-
+        
         // When
         AF.streamRequest(.bytes(expectedSize))
             .onHTTPResponse { response in
@@ -274,10 +252,10 @@ final class DataStreamTests: BaseTestCase {
                     secondCompletion.fulfill()
                 }
             }
-
+        
         wait(for: [onHTTPResponse, firstReceive, firstCompletion], timeout: timeout, enforceOrder: true)
         wait(for: [secondReceive, secondCompletion], timeout: timeout, enforceOrder: true)
-
+        
         // Then
         XCTAssertEqual(initialResponse, firstResponse)
         XCTAssertEqual(initialResponse, secondResponse)
@@ -290,7 +268,7 @@ final class DataStreamTests: BaseTestCase {
         XCTAssertEqual(secondResponse?.statusCode, 200)
         XCTAssertEqual(secondAccumulatedData.count, expectedSize)
     }
-
+    
     func testThatDataCanBeStreamedAndDecodedAtTheSameTime() {
         // Given
         var initialResponse: HTTPURLResponse?
@@ -308,7 +286,7 @@ final class DataStreamTests: BaseTestCase {
         var secondCompleteOnMain = false
         let secondReceive = expectation(description: "second stream should receive")
         let secondCompletion = expectation(description: "second stream should complete")
-
+        
         // When
         AF.streamRequest(.stream(1))
             .onHTTPResponse { response in
@@ -347,10 +325,10 @@ final class DataStreamTests: BaseTestCase {
                     secondCompletion.fulfill()
                 }
             }
-
+        
         wait(for: [onHTTPResponse, firstReceive, firstCompletion], timeout: timeout, enforceOrder: true)
         wait(for: [secondReceive, secondCompletion], timeout: timeout, enforceOrder: true)
-
+        
         // Then
         XCTAssertEqual(initialResponse, firstResponse)
         XCTAssertEqual(initialResponse, secondResponse)
@@ -364,12 +342,12 @@ final class DataStreamTests: BaseTestCase {
         XCTAssertNotNil(decodedResponse)
         XCTAssertNil(decodingError)
     }
-
-    #if !canImport(FoundationNetworking) // If we not using swift-corelibs-foundation.
+    
+#if !canImport(FoundationNetworking) // If we not using swift-corelibs-foundation.
     func testThatDataStreamRequestProducesWorkingInputStream() {
         // Given
         let expect = expectation(description: "stream complete")
-
+        
         // When
         let stream = AF.streamRequest(.xml)
             .responseStream { stream in
@@ -380,17 +358,17 @@ final class DataStreamTests: BaseTestCase {
                 }
             }
             .asInputStream()
-
+        
         waitForExpectations(timeout: timeout)
-
+        
         // Then
         let parser = XMLParser(stream: stream!)
         let parsed = parser.parse()
         XCTAssertTrue(parsed)
         XCTAssertNil(parser.parserError)
     }
-    #endif
-
+#endif
+    
     func testThatDataStreamCanBeManuallyResumed() {
         // Given
         let session = Session(startRequestsImmediately: false)
@@ -399,7 +377,7 @@ final class DataStreamTests: BaseTestCase {
         var completeOnMain = false
         let didReceive = expectation(description: "stream did receive")
         let didComplete = expectation(description: "stream complete")
-
+        
         // When
         session.streamRequest(.stream(1))
             .responseStream { stream in
@@ -413,20 +391,20 @@ final class DataStreamTests: BaseTestCase {
                     didComplete.fulfill()
                 }
             }.resume()
-
+        
         wait(for: [didReceive, didComplete], timeout: timeout, enforceOrder: true)
-
+        
         // Then
         XCTAssertTrue(streamOnMain)
         XCTAssertTrue(completeOnMain)
         XCTAssertEqual(response?.statusCode, 200)
     }
-
+    
     func testThatDataStreamIsAutomaticallyCanceledOnStreamErrorWhenEnabled() {
         var response: HTTPURLResponse?
         var complete: DataStreamRequest.Completion?
         let didComplete = expectation(description: "stream complete")
-
+        
         // When
         AF.streamRequest(.bytes(50), automaticallyCancelOnStreamError: true)
             .responseStreamDecodable(of: TestResponse.self) { stream in
@@ -438,24 +416,24 @@ final class DataStreamTests: BaseTestCase {
                 default: break
                 }
             }
-
+        
         waitForExpectations(timeout: timeout)
-
+        
         // Then
         XCTAssertEqual(response?.statusCode, 200)
         XCTAssertTrue(complete?.error?.isExplicitlyCancelledError == true,
                       "error is not explicitly cancelled but \(complete?.error?.localizedDescription ?? "None")")
     }
-
+    
     func testThatDataStreamIsAutomaticallyCanceledOnStreamClosureError() {
         // Given
         enum LocalError: Error { case failed }
-
+        
         var response: HTTPURLResponse?
         var complete: DataStreamRequest.Completion?
         let didReceive = expectation(description: "stream did receieve")
         let didComplete = expectation(description: "stream complete")
-
+        
         // When
         AF.streamRequest(.bytes(50))
             .responseStream { stream in
@@ -469,14 +447,14 @@ final class DataStreamTests: BaseTestCase {
                     didComplete.fulfill()
                 }
             }
-
+        
         wait(for: [didReceive, didComplete], timeout: timeout, enforceOrder: true)
-
+        
         // Then
         XCTAssertEqual(response?.statusCode, 200)
         XCTAssertTrue(complete?.error?.isExplicitlyCancelledError == false)
     }
-
+    
     func testThatDataStreamCanBeCancelledInClosure() {
         // Given
         // Use .main so that completion can't beat cancellation.
@@ -484,7 +462,7 @@ final class DataStreamTests: BaseTestCase {
         var completion: DataStreamRequest.Completion?
         let didReceive = expectation(description: "stream should receive")
         let didComplete = expectation(description: "stream should complete")
-
+        
         // When
         session.streamRequest(.bytes(1)).responseStream { stream in
             switch stream.event {
@@ -496,9 +474,9 @@ final class DataStreamTests: BaseTestCase {
                 didComplete.fulfill()
             }
         }
-
+        
         wait(for: [didReceive, didComplete], timeout: timeout, enforceOrder: true)
-
+        
         // Then
         XCTAssertTrue(completion?.error?.isExplicitlyCancelledError == true,
                       """
@@ -506,7 +484,7 @@ final class DataStreamTests: BaseTestCase {
                       response is: \(completion?.response?.description ?? "none").
                       """)
     }
-
+    
     func testThatDataStreamCanBeCancelledByToken() {
         // Given
         // Use .main so that completion can't beat cancellation.
@@ -514,7 +492,7 @@ final class DataStreamTests: BaseTestCase {
         var completion: DataStreamRequest.Completion?
         let didReceive = expectation(description: "stream should receive")
         let didComplete = expectation(description: "stream should complete")
-
+        
         // When
         session.streamRequest(.bytes(1)).responseStream { stream in
             switch stream.event {
@@ -526,9 +504,9 @@ final class DataStreamTests: BaseTestCase {
                 didComplete.fulfill()
             }
         }
-
+        
         wait(for: [didReceive, didComplete], timeout: timeout, enforceOrder: true)
-
+        
         // Then
         XCTAssertTrue(completion?.error?.isExplicitlyCancelledError == true,
                       """
@@ -536,7 +514,7 @@ final class DataStreamTests: BaseTestCase {
                       response is: \(completion?.response?.description ?? "none").
                       """)
     }
-
+    
     func testThatOnHTTPResponseCanContinueStream() {
         // Given
         let expectedSize = 5
@@ -548,7 +526,7 @@ final class DataStreamTests: BaseTestCase {
         let didReceiveResponse = expectation(description: "stream should receive response once")
         let didReceive = expectation(description: "stream should receive once")
         let didComplete = expectation(description: "stream should complete")
-
+        
         // When
         AF.streamRequest(.bytes(expectedSize))
             .onHTTPResponse { response, completionHandler in
@@ -571,9 +549,9 @@ final class DataStreamTests: BaseTestCase {
                     didComplete.fulfill()
                 }
             }
-
+        
         wait(for: [didReceiveResponse, didReceive, didComplete], timeout: timeout, enforceOrder: true)
-
+        
         // Then
         XCTAssertEqual(response?.statusCode, 200)
         XCTAssertEqual(initialResponse, response)
@@ -581,7 +559,7 @@ final class DataStreamTests: BaseTestCase {
         XCTAssertTrue(streamOnMain)
         XCTAssertTrue(completeOnMain)
     }
-
+    
     func testThatOnHTTPResponseCanCancelStream() {
         // Given
         let expectedSize = 5
@@ -591,7 +569,7 @@ final class DataStreamTests: BaseTestCase {
         var didCompleteOnMain = false
         let didReceiveResponse = expectation(description: "stream should receive response once")
         let didComplete = expectation(description: "stream should complete")
-
+        
         // When
         AF.streamRequest(.bytes(expectedSize))
             .onHTTPResponse { response, completionHandler in
@@ -610,9 +588,9 @@ final class DataStreamTests: BaseTestCase {
                     didComplete.fulfill()
                 }
             }
-
+        
         wait(for: [didReceiveResponse, didComplete], timeout: timeout, enforceOrder: true)
-
+        
         // Then
         XCTAssertEqual(response?.statusCode, 200)
         XCTAssertEqual(initialResponse, response)
@@ -632,7 +610,7 @@ final class DataStreamSerializationTests: BaseTestCase {
         var response: HTTPURLResponse?
         let didStream = expectation(description: "did stream")
         let didComplete = expectation(description: "stream complete")
-
+        
         // When
         AF.streamRequest(.stream(1))
             .responseStreamString { stream in
@@ -650,16 +628,16 @@ final class DataStreamSerializationTests: BaseTestCase {
                     didComplete.fulfill()
                 }
             }
-
+        
         wait(for: [didStream, didComplete], timeout: timeout, enforceOrder: true)
-
+        
         // Then
         XCTAssertTrue(streamOnMain)
         XCTAssertTrue(completeOnMain)
         XCTAssertNotNil(responseString)
         XCTAssertEqual(response?.statusCode, 200)
     }
-
+    
     func testThatDataStreamsCanBeDecoded() {
         // Given
         var response: TestResponse?
@@ -669,7 +647,7 @@ final class DataStreamSerializationTests: BaseTestCase {
         var completeOnMain = false
         let didReceive = expectation(description: "stream did receive")
         let didComplete = expectation(description: "stream complete")
-
+        
         // When
         AF.streamRequest(.stream(1))
             .responseStreamDecodable(of: TestResponse.self) { stream in
@@ -689,9 +667,9 @@ final class DataStreamSerializationTests: BaseTestCase {
                     didComplete.fulfill()
                 }
             }
-
+        
         wait(for: [didReceive, didComplete], timeout: timeout, enforceOrder: true)
-
+        
         // Then
         XCTAssertTrue(streamOnMain)
         XCTAssertTrue(completeOnMain)
@@ -699,7 +677,7 @@ final class DataStreamSerializationTests: BaseTestCase {
         XCTAssertEqual(httpResponse?.statusCode, 200)
         XCTAssertNil(decodingError)
     }
-
+    
     func testThatDataStreamSerializerCanBeUsedDirectly() {
         // Given
         var response: HTTPURLResponse?
@@ -710,7 +688,7 @@ final class DataStreamSerializationTests: BaseTestCase {
         let serializer = DecodableStreamSerializer<TestResponse>()
         let didReceive = expectation(description: "stream did receive")
         let didComplete = expectation(description: "stream complete")
-
+        
         // When
         AF.streamRequest(.stream(1))
             .responseStream(using: serializer) { stream in
@@ -730,9 +708,9 @@ final class DataStreamSerializationTests: BaseTestCase {
                     didComplete.fulfill()
                 }
             }
-
+        
         wait(for: [didReceive, didComplete], timeout: timeout, enforceOrder: true)
-
+        
         // Then
         XCTAssertTrue(streamOnMain)
         XCTAssertTrue(completeOnMain)
@@ -750,7 +728,7 @@ final class DataStreamIntegrationTests: BaseTestCase {
         var dataSeen = false
         var error: AFError?
         let didComplete = expectation(description: "stream should complete")
-
+        
         // When
         AF.streamRequest(.status(401))
             .validate()
@@ -763,20 +741,20 @@ final class DataStreamIntegrationTests: BaseTestCase {
                     didComplete.fulfill()
                 }
             }
-
+        
         waitForExpectations(timeout: timeout)
-
+        
         // Then
         XCTAssertNotNil(error, "error should not be nil")
         XCTAssertTrue(error?.isResponseValidationError == true, "error should be response validation error")
         XCTAssertFalse(dataSeen, "no data should be seen")
     }
-
+    
     func testThatDataStreamsCanBeRetried() {
         // Given
         final class GoodRetry: RequestInterceptor {
             var hasRetried = false
-
+            
             func adapt(_ urlRequest: URLRequest, for session: Session, completion: @escaping (Result<URLRequest, Error>) -> Void) {
                 if hasRetried {
                     completion(.success(Endpoint.bytes(1000).urlRequest))
@@ -784,13 +762,13 @@ final class DataStreamIntegrationTests: BaseTestCase {
                     completion(.success(urlRequest))
                 }
             }
-
+            
             func retry(_ request: Request, for session: Session, dueTo error: Error, completion: @escaping (RetryResult) -> Void) {
                 hasRetried = true
                 completion(.retry)
             }
         }
-
+        
         let session = Session(interceptor: GoodRetry())
         var accumulatedData = Data()
         var streamOnMain = false
@@ -798,7 +776,7 @@ final class DataStreamIntegrationTests: BaseTestCase {
         var response: HTTPURLResponse?
         let didReceive = expectation(description: "stream should receive")
         let didComplete = expectation(description: "stream should complete")
-
+        
         // When
         session.streamRequest(.status(401))
             .validate()
@@ -817,16 +795,16 @@ final class DataStreamIntegrationTests: BaseTestCase {
                     didComplete.fulfill()
                 }
             }
-
+        
         wait(for: [didReceive, didComplete], timeout: timeout, enforceOrder: true)
-
+        
         // Then
         XCTAssertTrue(streamOnMain)
         XCTAssertTrue(completeOnMain)
         XCTAssertEqual(accumulatedData.count, 1000)
         XCTAssertEqual(response?.statusCode, 200)
     }
-
+    
     func testThatDataStreamCanBeRedirected() {
         // Given
         var response: HTTPURLResponse?
@@ -841,7 +819,7 @@ final class DataStreamIntegrationTests: BaseTestCase {
         })
         let didReceive = expectation(description: "stream should receive")
         let didComplete = expectation(description: "stream should complete")
-
+        
         // When
         AF.streamRequest(.status(301))
             .redirect(using: redirector)
@@ -862,9 +840,9 @@ final class DataStreamIntegrationTests: BaseTestCase {
                     didComplete.fulfill()
                 }
             }
-
+        
         wait(for: [didRedirect, didReceive, didComplete], timeout: timeout, enforceOrder: true)
-
+        
         // Then
         XCTAssertTrue(streamOnMain)
         XCTAssertTrue(completeOnMain)
@@ -872,7 +850,7 @@ final class DataStreamIntegrationTests: BaseTestCase {
         XCTAssertEqual(response?.statusCode, 200)
         XCTAssertNil(decodingError)
     }
-
+    
     func testThatDataStreamCallsCachedResponseHandler() {
         // Given
         var response: HTTPURLResponse?
@@ -887,7 +865,7 @@ final class DataStreamIntegrationTests: BaseTestCase {
         })
         let didReceive = expectation(description: "stream did receive")
         let didComplete = expectation(description: "stream complete")
-
+        
         // When
         AF.streamRequest(.stream(1))
             .cacheResponse(using: cacher)
@@ -908,12 +886,12 @@ final class DataStreamIntegrationTests: BaseTestCase {
                     didComplete.fulfill()
                 }
             }
-
+        
         // willCacheResponse called after receiving all Data, so may be called before or after the asynchronous stream
         // handlers.
         wait(for: [cached], timeout: timeout)
         wait(for: [didReceive, didComplete], timeout: timeout, enforceOrder: true)
-
+        
         // Then
         XCTAssertTrue(streamOnMain)
         XCTAssertTrue(completeOnMain)
@@ -921,7 +899,7 @@ final class DataStreamIntegrationTests: BaseTestCase {
         XCTAssertEqual(response?.statusCode, 200)
         XCTAssertNil(decodingError)
     }
-
+    
     func testThatDataStreamWorksCorrectlyWithMultipleSerialQueues() {
         // Given
         let requestQueue = DispatchQueue(label: "org.alamofire.testRequestQueue")
@@ -943,7 +921,7 @@ final class DataStreamIntegrationTests: BaseTestCase {
         let secondStream = expectation(description: "second stream")
         let secondDidReceive = expectation(description: "second stream did receive")
         let secondDidComplete = expectation(description: "second stream complete")
-
+        
         // When
         session.streamRequest(.stream(1))
             .responseStreamDecodable(of: TestResponse.self) { stream in
@@ -982,12 +960,12 @@ final class DataStreamIntegrationTests: BaseTestCase {
                     secondDidComplete.fulfill()
                 }
             }
-
+        
         wait(for: [firstStream, secondStream], timeout: timeout, enforceOrder: true)
         // Cannot test order of completion events, as one may have been enqueued while the other executed directly.
         wait(for: [firstDidReceive, firstDidComplete], timeout: timeout, enforceOrder: true)
         wait(for: [secondDidReceive, secondDidComplete], timeout: timeout, enforceOrder: true)
-
+        
         // Then
         XCTAssertTrue(firstStreamOnMain)
         XCTAssertTrue(firstCompleteOnMain)
@@ -1000,7 +978,7 @@ final class DataStreamIntegrationTests: BaseTestCase {
         XCTAssertEqual(secondResponse?.statusCode, 200)
         XCTAssertNil(secondDecodingError)
     }
-
+    
     func testThatDataStreamWorksCorrectlyWithMultipleConcurrentQueues() {
         // Given
         let requestQueue = DispatchQueue(label: "org.alamofire.testRequestQueue", attributes: .concurrent)
@@ -1020,7 +998,7 @@ final class DataStreamIntegrationTests: BaseTestCase {
         var secondCompleteOnMain = false
         let secondDidReceive = expectation(description: "second stream did receive")
         let secondDidComplete = expectation(description: "second stream complete")
-
+        
         // When
         session.streamRequest(.stream(1))
             .responseStreamDecodable(of: TestResponse.self) { stream in
@@ -1057,10 +1035,10 @@ final class DataStreamIntegrationTests: BaseTestCase {
                     secondDidComplete.fulfill()
                 }
             }
-
+        
         wait(for: [firstDidReceive, firstDidComplete], timeout: timeout, enforceOrder: true)
         wait(for: [secondDidReceive, secondDidComplete], timeout: timeout, enforceOrder: true)
-
+        
         // Then
         XCTAssertTrue(firstStreamOnMain)
         XCTAssertTrue(firstCompleteOnMain)
@@ -1073,7 +1051,7 @@ final class DataStreamIntegrationTests: BaseTestCase {
         XCTAssertEqual(secondResponse?.statusCode, 200)
         XCTAssertNil(secondDecodingError)
     }
-
+    
     func testThatDataStreamCanAuthenticate() {
         // Given
         let user = "userstream", password = "password"
@@ -1082,7 +1060,7 @@ final class DataStreamIntegrationTests: BaseTestCase {
         var completeOnMain = false
         let didReceive = expectation(description: "stream did receive")
         let didComplete = expectation(description: "stream complete")
-
+        
         // When
         AF.streamRequest(.basicAuth(forUser: user, password: password))
             .authenticate(username: user, password: password)
@@ -1097,9 +1075,9 @@ final class DataStreamIntegrationTests: BaseTestCase {
                     didComplete.fulfill()
                 }
             }
-
+        
         wait(for: [didReceive, didComplete], timeout: timeout, enforceOrder: true)
-
+        
         // Then
         XCTAssertTrue(streamOnMain)
         XCTAssertTrue(completeOnMain)
@@ -1112,7 +1090,7 @@ final class DataStreamLifetimeEvents: BaseTestCase {
         // Given
         final class Monitor: EventMonitor {
             var called: (() -> Void)?
-
+            
             func request<Value>(_ request: DataStreamRequest, didParseStream result: Result<Value, AFError>) {
                 called?()
             }
@@ -1120,7 +1098,7 @@ final class DataStreamLifetimeEvents: BaseTestCase {
         let eventMonitor = ClosureEventMonitor()
         let parseMonitor = Monitor()
         let session = Session(eventMonitors: [eventMonitor, parseMonitor])
-
+        
         // Disable event test until Firewalk supports HTTPS.
         //  let didReceiveChallenge = expectation(description: "didReceiveChallenge should fire")
         let taskDidFinishCollecting = expectation(description: "taskDidFinishCollecting should fire")
@@ -1138,9 +1116,9 @@ final class DataStreamLifetimeEvents: BaseTestCase {
         let didParse = expectation(description: "streamDidParse should fire")
         let didReceive = expectation(description: "stream should receive")
         let didCompleteStream = expectation(description: "stream should complete")
-
+        
         var dataReceived = false
-
+        
         // Disable event test until Firewalk supports HTTPS.
         //  eventMonitor.taskDidReceiveChallenge = { _, _, _ in didReceiveChallenge.fulfill() }
         eventMonitor.taskDidFinishCollectingMetrics = { _, _, _ in taskDidFinishCollecting.fulfill() }
@@ -1160,7 +1138,7 @@ final class DataStreamLifetimeEvents: BaseTestCase {
         eventMonitor.requestDidResumeTask = { _, _ in didResumeTask.fulfill() }
         eventMonitor.requestDidValidateRequestResponseWithResult = { _, _, _, _ in didValidate.fulfill() }
         parseMonitor.called = { didParse.fulfill() }
-
+        
         // When
         let request = session.streamRequest(.stream(1))
             .validate()
@@ -1172,9 +1150,9 @@ final class DataStreamLifetimeEvents: BaseTestCase {
                     didCompleteStream.fulfill()
                 }
             }
-
+        
         waitForExpectations(timeout: timeout)
-
+        
         // Then
         XCTAssertEqual(request.state, .finished)
     }

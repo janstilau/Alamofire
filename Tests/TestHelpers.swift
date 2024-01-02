@@ -1,27 +1,3 @@
-//
-//  TestHelpers.swift
-//
-//  Copyright (c) 2014-2018 Alamofire Software Foundation (http://alamofire.org/)
-//
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
-//
-
 import Alamofire
 import Foundation
 
@@ -35,6 +11,8 @@ extension URL {
 }
 
 struct Endpoint {
+    // 所有的一切,  都使用 Enum 来完成了封装.
+    // 使用类型, 来代替基本的数据类型.
     enum Scheme: String {
         case http, https
 
@@ -64,7 +42,7 @@ struct Endpoint {
         case cache
         case chunked(count: Int)
         case compression(Compression)
-        case delay(interval: Int)
+        case delay(interval: Int) // response 会晚点返回, 这是服务器那边的设置. 
         case digestAuth(qop: String = "auth", username: String, password: String)
         case download(count: Int)
         case hiddenBasicAuth(username: String, password: String)
@@ -232,6 +210,7 @@ struct Endpoint {
     var path = Path.method(.get)
     var method: HTTPMethod = .get
     var headers: HTTPHeaders = .init()
+    
     var timeout: TimeInterval = 60
     var queryItems: [URLQueryItem] = []
     var cachePolicy: URLRequest.CachePolicy = .useProtocolCachePolicy
@@ -239,7 +218,6 @@ struct Endpoint {
     func modifying<T>(_ keyPath: WritableKeyPath<Endpoint, T>, to value: T) -> Endpoint {
         var copy = self
         copy[keyPath: keyPath] = value
-
         return copy
     }
 }
@@ -247,6 +225,7 @@ struct Endpoint {
 extension Endpoint: URLRequestConvertible {
     var urlRequest: URLRequest { try! asURLRequest() }
 
+    // 最终, 是使用这个方法, 进行真正的 Request 的创建.
     func asURLRequest() throws -> URLRequest {
         var request = try URLRequest(url: asURL())
         request.method = method
