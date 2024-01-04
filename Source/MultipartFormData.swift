@@ -1,27 +1,3 @@
-//
-//  MultipartFormData.swift
-//
-//  Copyright (c) 2014-2018 Alamofire Software Foundation (http://alamofire.org/)
-//
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
-//
-
 import Foundation
 
 #if canImport(MobileCoreServices)
@@ -38,18 +14,30 @@ import CoreServices
 ///
 /// For more information on `multipart/form-data` in general, please refer to the RFC-2388 and RFC-2045 specs as well
 /// and the w3 form documentation.
-///
+
+/*
+ ///构造' multipart/form-data '用于在HTTP或HTTPS主体内上传。目前有两种编码方式
+ ///多部分表单数据。第一种方法是直接在内存中对数据进行编码。这是非常有效的，但可能导致
+ ///如果数据集太大，内存问题。第二种方法是为更大的数据集设计的，它将写入所有的
+ ///数据到磁盘上的一个文件与所有适当的边界分割。第二种方法必须用于
+ ///更大的数据集，如视频内容，否则你的应用程序可能会在尝试编码数据集时耗尽内存。
+ ///
+ ///关于“multipart/form-data”的更多信息，请参考RFC-2388和RFC-2045规范
+ ///和w3表单文档。
+ */
 /// - https://www.ietf.org/rfc/rfc2388.txt
 /// - https://www.ietf.org/rfc/rfc2045.txt
 /// - https://www.w3.org/TR/html401/interact/forms.html#h-17.13
 open class MultipartFormData {
     // MARK: - Helper Types
 
+    // 这应该是一个作用域的概念. 也就是说, namesapce. 而不是专门想要这样的一个类型.
     enum EncodingCharacters {
         static let crlf = "\r\n"
     }
 
     enum BoundaryGenerator {
+        // 这对应的是 boundary 的不同位置.
         enum BoundaryType {
             case initial, encapsulated, final
         }
@@ -57,7 +45,6 @@ open class MultipartFormData {
         static func randomBoundary() -> String {
             let first = UInt32.random(in: UInt32.min...UInt32.max)
             let second = UInt32.random(in: UInt32.min...UInt32.max)
-
             return String(format: "alamofire.boundary.%08x%08x", first, second)
         }
 
@@ -97,6 +84,7 @@ open class MultipartFormData {
     public static let encodingMemoryThreshold: UInt64 = 10_000_000
 
     /// The `Content-Type` header value containing the boundary used to generate the `multipart/form-data`.
+    // 这个值是固定的.
     open lazy var contentType: String = "multipart/form-data; boundary=\(self.boundary)"
 
     /// The content length of all body parts used to generate the `multipart/form-data` not including the boundaries.

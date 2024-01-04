@@ -32,6 +32,8 @@ open class SessionDelegate: NSObject {
 }
 
 /// Type which provides various `Session` state values.
+// 这里面的, 都是 URLSession Delegate 所需要的.
+// 将所需要的方法, 类型抽象出来, 然后交给 Session 来进行实现. 
 protocol SessionStateProvider: AnyObject {
     var serverTrustManager: ServerTrustManager? { get }
     var redirectHandler: RedirectHandler? { get }
@@ -261,6 +263,8 @@ extension SessionDelegate: URLSessionDataDelegate {
                          completionHandler: @escaping (CachedURLResponse?) -> Void) {
         eventMonitor?.urlSession(session, dataTask: dataTask, willCacheResponse: proposedResponse)
 
+        // 这个 completionHandler 其实是在 URLSession 里面设计的.
+        // 如果传递一个 Nil 过去. 那边就不进行存储了. 
         if let handler = stateProvider?.request(for: dataTask)?.cachedResponseHandler ?? stateProvider?.cachedResponseHandler {
             handler.dataTask(dataTask, willCacheResponse: proposedResponse, completion: completionHandler)
         } else {

@@ -1,27 +1,3 @@
-//
-//  CachedResponseHandler.swift
-//
-//  Copyright (c) 2019 Alamofire Software Foundation (http://alamofire.org/)
-//
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
-//
-
 import Foundation
 
 /// A type that handles whether the data task should store the HTTP response in the cache.
@@ -38,6 +14,7 @@ public protocol CachedResponseHandler {
     ///   - task:       The data task whose request resulted in the cached response.
     ///   - response:   The cached response to potentially store in the cache.
     ///   - completion: The closure to execute containing cached response, a modified response, or `nil`.
+    // 所有的相关的操作, 都使用抽象进行了封装.
     func dataTask(_ task: URLSessionDataTask,
                   willCacheResponse response: CachedURLResponse,
                   completion: @escaping (CachedURLResponse?) -> Void)
@@ -69,6 +46,7 @@ public struct ResponseCacher {
     /// Creates a `ResponseCacher` instance from the `Behavior`.
     ///
     /// - Parameter behavior: The `Behavior`.
+    // 将 Enum 当做存储类型使用的例子.
     public init(behavior: Behavior) {
         self.behavior = behavior
     }

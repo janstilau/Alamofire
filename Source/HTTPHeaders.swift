@@ -2,7 +2,7 @@ import Foundation
 
 /*
  这个 HTTPHeaders 结构体的设计目的是为了提供一个专门用于管理 HTTP 头部的数据结构，其特点和使用 Dict 直接存储 HTTP 头部相比有几个显著的优势：
-
+ 
  顺序保持：与普通字典不同，HTTPHeaders 结构体通过内部数组来存储头部，从而保持添加头部的顺序。这在某些 HTTP 协议场景中可能很重要，因为虽然大多数 HTTP 头部的顺序不是必需的，但在某些特定情况下，顺序可能会影响请求的处理。
  大小写不敏感性：HTTP 头部的名称是大小写不敏感的。HTTPHeaders 结构体内部处理了这一点，保证了无论大小写如何，都可以正确处理头部名称。这与直接使用字典不同，字典的键是大小写敏感的。
  去重和更新：该结构体提供了方法来更新头部，如果添加的头部已经存在，它会自动更新其值。这意味着可以方便地处理重复头部的情况，而不需要在添加前先检查键是否存在。
@@ -58,6 +58,7 @@ public struct HTTPHeaders {
     ///
     /// - Parameter header: The `HTTPHeader` to update or append.
     // 所有的方法, 都集中到这里进行真正的修改操作.
+    // 这是一个结构体, 所以相关的方法, 要使用 mutating .
     public mutating func update(_ header: HTTPHeader) {
         // 找不到, 就添加.
         guard let index = headers.index(of: header.name) else {
@@ -426,7 +427,7 @@ extension URLRequest {
     public var headers: HTTPHeaders {
         get { allHTTPHeaderFields.map(HTTPHeaders.init) ?? HTTPHeaders() }
         
-        // 只要是调用了 headers 的 update 方法, 这里就会被调用. 
+        // 只要是调用了 headers 的 update 方法, 这里就会被调用.
         set { allHTTPHeaderFields = newValue.dictionary }
     }
 }
