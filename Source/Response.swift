@@ -5,6 +5,8 @@ public typealias AFDataResponse<Success> = DataResponse<Success, AFError>
 /// Default type of `DownloadResponse` returned by Alamofire, with an `AFError` `Failure` type.
 public typealias AFDownloadResponse<Success> = DownloadResponse<Success, AFError>
 
+
+// 作为 DataResponse, 还是将所有的数据, 都进行了打包, 交给了外界. 这里的数据, 就包含 URLRequest 这个启动数据.
 /// Type used to store all values associated with a serialized response of a `DataRequest` or `UploadRequest`.
 public struct DataResponse<Success, Failure: Error> {
     /// The URL request sent to the server.
@@ -28,12 +30,14 @@ public struct DataResponse<Success, Failure: Error> {
     /// The result of response serialization.
     public let result: Result<Success, Failure>
 
+    // 作为类型的设计值, 需要给外界, 提供一个好用的接口.
     /// Returns the associated value of the result if it is a success, `nil` otherwise.
     public var value: Success? { result.success }
 
     /// Returns the associated error value if the result if it is a failure, `nil` otherwise.
     public var error: Failure? { result.failure }
 
+    // 所以, 实际上这就是一个数据类而已. 
     /// Creates a `DataResponse` instance with the specified parameters derived from the response serialization.
     ///
     /// - Parameters:

@@ -1,5 +1,6 @@
 import Foundation
 
+// 所有的, 对于 Security 类库的编译, 都是需要这个宏进行包裹的.
 #if canImport(Security)
 import Security
 #endif

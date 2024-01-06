@@ -7,7 +7,8 @@ extension URLRequest {
         get { httpMethod.map(HTTPMethod.init) }
         set { httpMethod = newValue?.rawValue }
     }
-
+    
+    // 这里的简单测试, 就是 Get 不能有 Body. 
     public func validate() throws {
         if method == .get, let bodyData = httpBody {
             throw AFError.urlRequestValidationFailed(reason: .bodyDataInGETRequest(bodyData))

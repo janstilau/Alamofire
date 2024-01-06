@@ -5,6 +5,8 @@ private protocol Lock {
     func unlock()
 }
 
+// 应该大量的使用 defer 这种设置.
+// 应该大量的使用 throw 是和 rethrows.
 extension Lock {
     /// Executes a closure returning a value while acquiring the lock.
     ///

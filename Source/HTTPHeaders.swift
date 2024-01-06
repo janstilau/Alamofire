@@ -11,6 +11,8 @@ import Foundation
  遵循标准协议：HTTPHeaders 遵循了 ExpressibleByDictionaryLiteral 和 ExpressibleByArrayLiteral 等 Swift 标准协议，使其在使用上更加灵活和方便。
  */
 /// An order-preserving and case-insensitive representation of HTTP headers.
+///
+// 专门设计了, 这样的一个类, 用来进行封装.
 public struct HTTPHeaders {
     private var headers: [HTTPHeader] = []
     
@@ -29,6 +31,8 @@ public struct HTTPHeaders {
         dictionary.forEach { update(HTTPHeader(name: $0.key, value: $0.value)) }
     }
     
+    
+    // 所有的 Struct 里面, 可以引起改变的方法, 都用 Mutating 进行了包装.
     /// Case-insensitively updates or appends an `HTTPHeader` into the instance using the provided `name` and `value`.
     ///
     /// - Parameters:
@@ -78,6 +82,8 @@ public struct HTTPHeaders {
         headers.remove(at: index)
     }
     
+    // 这里还是原来的传统, 就是可以引起改变的, 不返回的, 直接是动词, 然后是 mutating 进行修饰.
+    // 然后可以返回的, 就是复制后进行修改. 当然, 还是使用了 sort 里面的实现.
     /// Sort the current instance by header name, case insensitively.
     public mutating func sort() {
         headers.sort { $0.name.lowercased() < $1.name.lowercased() }

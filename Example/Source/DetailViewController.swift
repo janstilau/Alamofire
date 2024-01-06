@@ -9,6 +9,7 @@ class DetailViewController: UITableViewController {
     var request: Request? {
         didSet {
             oldValue?.cancel()
+            
 
             title = request?.description
             request?.onURLRequestCreation { [weak self] _ in

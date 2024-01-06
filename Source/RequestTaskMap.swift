@@ -31,7 +31,6 @@ struct RequestTaskMap {
                 requestsToTasks.removeValue(forKey: request)
                 tasksToRequests.removeValue(forKey: task)
                 taskEvents.removeValue(forKey: task)
-
                 return
             }
 

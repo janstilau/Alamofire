@@ -22,6 +22,7 @@ extension String: URLConvertible {
         return url
     }
 }
+
 // 各种, Convertible 必然有一个 Model 类. 这个 Model 的 as 行为, 就是返回自身了. 
 extension URL: URLConvertible {
     /// Returns `self`.

@@ -5,6 +5,7 @@ import Foundation
 open class SessionDelegate: NSObject {
     private let fileManager: FileManager
 
+    // 这里面就是 Session.
     weak var stateProvider: SessionStateProvider?
     var eventMonitor: EventMonitor?
 
@@ -48,6 +49,8 @@ protocol SessionStateProvider: AnyObject {
 
 // MARK: URLSessionDelegate
 // 以下则是在 URLSession 的各个事件里面, 触发对应的方法.
+
+// Session 不存在了之后, Alamofire 里面, 也要通知自己的 Request 相关的信息. 
 extension SessionDelegate: URLSessionDelegate {
     open func urlSession(_ session: URLSession, didBecomeInvalidWithError error: Error?) {
         eventMonitor?.urlSession(session, didBecomeInvalidWithError: error)
@@ -59,6 +62,7 @@ extension SessionDelegate: URLSessionDelegate {
 
 extension SessionDelegate: URLSessionTaskDelegate {
     /// Result of a `URLAuthenticationChallenge` evaluation.
+    // 如果处理, 凭证, 错误.
     typealias ChallengeEvaluation = (disposition: URLSession.AuthChallengeDisposition, credential: URLCredential?, error: AFError?)
 
     open func urlSession(_ session: URLSession,
@@ -69,7 +73,9 @@ extension SessionDelegate: URLSessionTaskDelegate {
 
         let evaluation: ChallengeEvaluation
         switch challenge.protectionSpace.authenticationMethod {
-        case NSURLAuthenticationMethodHTTPBasic, NSURLAuthenticationMethodHTTPDigest, NSURLAuthenticationMethodNTLM,
+        case NSURLAuthenticationMethodHTTPBasic,
+            NSURLAuthenticationMethodHTTPDigest,
+            NSURLAuthenticationMethodNTLM,
              NSURLAuthenticationMethodNegotiate:
             /*
              NSURLAuthenticationMethodHTTPBasic:
@@ -90,6 +96,7 @@ extension SessionDelegate: URLSessionTaskDelegate {
         case NSURLAuthenticationMethodServerTrust:
             evaluation = attemptServerTrustAuthentication(with: challenge)
         case NSURLAuthenticationMethodClientCertificate:
+            // 不管.
             evaluation = attemptCredentialAuthentication(for: challenge, belongingTo: task)
         #endif
         default:
@@ -110,14 +117,15 @@ extension SessionDelegate: URLSessionTaskDelegate {
     ///
     /// - Returns:             The `ChallengeEvaluation`.
     func attemptServerTrustAuthentication(with challenge: URLAuthenticationChallenge) -> ChallengeEvaluation {
+        
         let host = challenge.protectionSpace.host
-
         guard challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
               let trust = challenge.protectionSpace.serverTrust
         else {
             return (.performDefaultHandling, nil, nil)
         }
 
+        // challenge.protectionSpace.serverTrust 这里面, 装的就是服务端发过来的证书了.
         // 将服务器证书验证的逻辑, 都封装到了 evaluator 这个类里面了.
         do {
             guard let evaluator = try stateProvider?.serverTrustManager?.serverTrustEvaluator(forHost: host) else {
@@ -140,6 +148,7 @@ extension SessionDelegate: URLSessionTaskDelegate {
     ///   - task:      The `URLSessionTask` which received the challenge.
     ///
     /// - Returns:     The `ChallengeEvaluation`.
+    // 对于 401 里面的那种认证, 或者是客户端认证, 会到这里来.
     func attemptCredentialAuthentication(for challenge: URLAuthenticationChallenge,
                                          belongingTo task: URLSessionTask) -> ChallengeEvaluation {
         guard challenge.previousFailureCount == 0 else {
@@ -153,6 +162,8 @@ extension SessionDelegate: URLSessionTaskDelegate {
         return (.useCredential, credential, nil)
     }
     
+    
+    
     // 发送过程, 不断地触发这里.
     open func urlSession(_ session: URLSession,
                          task: URLSessionTask,
@@ -165,7 +176,7 @@ extension SessionDelegate: URLSessionTaskDelegate {
                                  didSendBodyData: bytesSent,
                                  totalBytesSent: totalBytesSent,
                                  totalBytesExpectedToSend: totalBytesExpectedToSend)
-        // 使用 Session 对象, 通知外界.
+        // 更新 Request 对象里面的数据.
         stateProvider?.request(for: task)?.updateUploadProgress(totalBytesSent: totalBytesSent,
                                                                 totalBytesExpectedToSend: totalBytesExpectedToSend)
     }
@@ -184,6 +195,7 @@ extension SessionDelegate: URLSessionTaskDelegate {
         completionHandler(request.inputStream())
     }
 
+    // 重定向的 delegate.
     open func urlSession(_ session: URLSession,
                          task: URLSessionTask,
                          willPerformHTTPRedirection response: HTTPURLResponse,
@@ -198,6 +210,7 @@ extension SessionDelegate: URLSessionTaskDelegate {
         }
     }
 
+    // 这个在 Foundation 库里面没有实现.
     open func urlSession(_ session: URLSession, task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics) {
         eventMonitor?.urlSession(session, task: task, didFinishCollecting: metrics)
 
@@ -206,6 +219,11 @@ extension SessionDelegate: URLSessionTaskDelegate {
         stateProvider?.didGatherMetricsForTask(task)
     }
 
+    /*
+     func urlProtocolDidFinishLoading(_ urlProtocol: URLProtocol)
+     func urlProtocol(task: URLSessionTask, didFailWithError error: Error)
+     在这两个方法里面, 会触发到这里.  也算是终点 到 终点.
+     */
     open func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         eventMonitor?.urlSession(session, task: task, didCompleteWithError: error)
 

@@ -220,6 +220,7 @@ open class Interceptor: RequestInterceptor {
         adapt(urlRequest, for: session, using: adapters, completion: completion)
     }
 
+    // 这里就是递归调用了. 不断地触发 [] 数组内的 adapter 的作用. 
     private func adapt(_ urlRequest: URLRequest,
                        for session: Session,
                        using adapters: [RequestAdapter],

@@ -47,6 +47,7 @@ public class Request {
     /// `UUID` providing a unique identifier for the `Request`, used in the `Hashable` and `Equatable` conformances.
     public let id: UUID
     // 这个 Queue 就是 Session 里面的 RootQueue
+    
     /// The serial queue for all internal async actions.
     public let underlyingQueue: DispatchQueue
     /// The queue used for all serialization actions. By default it's a serial queue that targets `underlyingQueue`.
@@ -458,6 +459,7 @@ public class Request {
     /// - Parameters:
     ///   - task:  The `URLSessionTask` which failed.
     ///   - error: The early failure `AFError`.
+    // 这里仅仅是记录一下, 因为 URLSession 的回调, 还是最终会触发的. 
     func didFailTask(_ task: URLSessionTask, earlyWithError error: AFError) {
         dispatchPrecondition(condition: .onQueue(underlyingQueue))
         
@@ -475,6 +477,7 @@ public class Request {
     ///   - task:  The `URLSessionTask` which completed.
     ///   - error: The `AFError` `task` may have completed with. If `error` has already been set on the instance, this
     ///            value is ignored.
+    // 就算是前面 Cancel 掉了, 这里其实还是会被触发的. 
     func didCompleteTask(_ task: URLSessionTask, with error: AFError?) {
         dispatchPrecondition(condition: .onQueue(underlyingQueue))
         
@@ -507,6 +510,7 @@ public class Request {
         
         guard !isCancelled, let error = error, let delegate = delegate else { finish(); return }
         
+        // 这里是交给了 Session
         delegate.retryResult(for: self, dueTo: error) { retryResult in
             switch retryResult {
             case .doNotRetry:
@@ -530,8 +534,10 @@ public class Request {
         
         $mutableState.isFinishing = true
         
+        //
         if let error = error { self.error = error }
         
+        // 在 Finish 里面, 才会真正的开启解析.
         // Start response handlers
         processNextResponseSerializer()
         
@@ -619,6 +625,7 @@ public class Request {
         }
         
         // serializationQueue 唯一起到作用的地方, 就是在这里.
+        // 在这里, 是对刚刚抽取出来的 responseSerializer 进行了真正的调用.
         serializationQueue.async { responseSerializer() }
     }
     
@@ -1195,7 +1202,8 @@ public class DataRequest: Request {
         updateDownloadProgress()
     }
     
-    func didReceiveResponse(_ response: HTTPURLResponse, completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
+    func didReceiveResponse(_ response: HTTPURLResponse,
+                            completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
         $dataMutableState.read { dataMutableState in
             guard let httpResponseHandler = dataMutableState.httpResponseHandler else {
                 underlyingQueue.async { completionHandler(.allow) }
@@ -1246,6 +1254,8 @@ public class DataRequest: Request {
     public func validate(_ validation: @escaping Validation) -> Self {
         // 这里仅仅是收集. 在真正的网络请求结束之后, 会使用 $validators 中存储的值, 做真正的校验.
         // 最终的结果, 会放到 self.error 中.
+        
+        // 给外界的, 是带有参数的. 因为内部知道, 一定是在最后的时候调用, 所以内部存储的, 就是 () -> () 这种类型.
         let validator: () -> Void = { [unowned self] in
             guard error == nil, let response = response else { return }
             
@@ -1980,6 +1990,7 @@ public class UploadRequest: DataRequest {
     // MARK: Mutable State
     
     /// `Uploadable` value used by the instance.
+    // 上传相比 DataTask, 最重要的就是这里了.
     public var uploadable: Uploadable?
     
     /// Creates an `UploadRequest` using the provided parameters.

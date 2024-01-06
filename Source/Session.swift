@@ -1,8 +1,10 @@
 import Foundation
 
+// 这是 Alamofire 的管理类. 所有的网络请求, 都是在这个类里面生成.
 /// `Session` creates and manages Alamofire's `Request` types during their lifetimes. It also provides common
 /// functionality for all `Request`s, including queuing, interception, trust management, redirect handling, and response
 /// cache handling.
+
 open class Session {
     /// Shared singleton instance used by all `AF.request` APIs. Cannot be modified.
     public static let `default` = Session()
@@ -13,6 +15,7 @@ open class Session {
     /// - Note: This instance should **NOT** be used to interact with the underlying `URLSessionTask`s. Doing so will
     ///         break internal Alamofire logic that tracks those tasks.
     ///
+    // 这是使用 URLLoading System 的关键所在. 
     public let session: URLSession
     /// Instance's `SessionDelegate`, which handles the `URLSessionDelegate` methods and `Request` interaction.
     public let delegate: SessionDelegate
@@ -20,14 +23,17 @@ open class Session {
     public let rootQueue: DispatchQueue
     /// Value determining whether this instance automatically calls `resume()` on all created `Request`s.
     public let startRequestsImmediately: Bool
+    
     /// `DispatchQueue` on which `URLRequest`s are created asynchronously. By default this queue uses `rootQueue` as its
     /// `target`, but a separate queue can be used if request creation is determined to be a bottleneck. Always profile
     /// and test before introducing an additional queue.
     public let requestQueue: DispatchQueue
+    
     /// `DispatchQueue` passed to all `Request`s on which they perform their response serialization. By default this
     /// queue uses `rootQueue` as its `target` but a separate queue can be used if response serialization is determined
     /// to be a bottleneck. Always profile and test before introducing an additional queue.
     public let serializationQueue: DispatchQueue
+    
     /// `RequestInterceptor` used for all `Request` created by the instance. `RequestInterceptor`s can also be set on a
     /// per-`Request` basis, in which case the `Request`'s interceptor takes precedence over this value.
     public let interceptor: RequestInterceptor?
@@ -102,6 +108,7 @@ open class Session {
         self.delegate = delegate
         self.rootQueue = rootQueue
         self.startRequestsImmediately = startRequestsImmediately
+        // 这两个 Queue 的 target, 默认都是一个 Queue.
         self.requestQueue = requestQueue ?? DispatchQueue(label: "\(rootQueue.label).requestQueue", target: rootQueue)
         self.serializationQueue = serializationQueue ?? DispatchQueue(label: "\(rootQueue.label).serializationQueue", target: rootQueue)
         self.interceptor = interceptor
@@ -109,7 +116,7 @@ open class Session {
         self.redirectHandler = redirectHandler
         self.cachedResponseHandler = cachedResponseHandler
         eventMonitor = CompositeEventMonitor(monitors: defaultEventMonitors + eventMonitors)
-        // 在这里, 将
+        // delegate 对象的 stateProvider 是 Session 本身.
         delegate.eventMonitor = eventMonitor
         delegate.stateProvider = self
     }
@@ -149,7 +156,7 @@ open class Session {
     ///   - eventMonitors:            Additional `EventMonitor`s used by the instance. Alamofire always adds a
     ///                               `AlamofireNotifications` `EventMonitor` to the array passed here. `[]` by default.
     // 在制作 API 的时候, 能够提供一个方便使用的构造方法是至关重要的.
-    // 可以看到, 在流行的库里面, 
+    // 在流行的库里面, 都是在 init 方法里面, 填入所需要的各种信息, 而不是在属性初始化的时候就填入了.
     public convenience init(configuration: URLSessionConfiguration = URLSessionConfiguration.af.default,
                             delegate: SessionDelegate = SessionDelegate(),
                             rootQueue: DispatchQueue = DispatchQueue(label: "org.alamofire.session.rootQueue"),
@@ -186,6 +193,7 @@ open class Session {
     
     deinit {
         finishRequestsForDeinit()
+        // 这个方法调用之后, 不会等待网络结束.
         session.invalidateAndCancel()
     }
     
@@ -202,6 +210,7 @@ open class Session {
     ///   - action:     Closure to perform with all `Request`s.
     // 各种 with 相关的方法, 其实都是在对应的环境内, 做相关的修改操作.
     // 这是一个值得模仿的点.
+    // 所有的对于 Session 里面的数据操作, 都应该是在 RootQueue 的包裹之下的.
     public func withAllRequests(perform action: @escaping (Set<Request>) -> Void) {
         rootQueue.async {
             action(self.activeRequests)
@@ -219,6 +228,8 @@ open class Session {
     ///   - completion: Closure to be called when all `Request`s have been cancelled.
     public func cancelAllRequests(completingOnQueue queue: DispatchQueue = .main, completion: (() -> Void)? = nil) {
         withAllRequests { requests in
+            // 在所有的 request 的 cancel 完成之后, 主动调用一个 completion.
+            // 这种, 给闭包提供使用场景的设计, 是非常重要的.
             requests.forEach { $0.cancel() }
             queue.async {
                 completion?()
@@ -241,14 +252,15 @@ open class Session {
         let headers: HTTPHeaders?
         let requestModifier: RequestModifier?
         
+        // 这里就是最初生成 URLRequest 的地方.
         func asURLRequest() throws -> URLRequest {
             var request = try URLRequest(url: url, method: method, headers: headers)
             try requestModifier?(&request)
-            
             return try encoding.encode(request, with: parameters)
         }
     }
     
+    // 最为核心的方法, 其实就是在这里.
     /// Creates a `DataRequest` from a `URLRequest` created using the passed components and a `RequestInterceptor`.
     ///
     /// - Parameters:
@@ -1049,6 +1061,7 @@ open class Session {
             initialRequest = try convertible.asURLRequest()
             try initialRequest.validate()
         } catch {
+            // 在整个过程里面, 都是如果出错了, 就直接触发 request 层面的结束方法.
             rootQueue.async { request.didFailToCreateURLRequest(with: error.asAFError(or: .createURLRequestFailed(error: error))) }
             return
         }
@@ -1064,7 +1077,6 @@ open class Session {
         }
         
         let adapterState = RequestAdapterState(requestID: request.id, session: self)
-        
         adapter.adapt(initialRequest, using: adapterState) { result in
             do {
                 let adaptedRequest = try result.get()
@@ -1083,7 +1095,7 @@ open class Session {
     
     // MARK: - Task Handling
     
-    // 在这个方法内, 才真正的去创建对应的 task.
+    // 在这里, 就是真正的把 URLRequest 构造出来了. 然后进行进行数据的收集.
     func didCreateURLRequest(_ urlRequest: URLRequest, for request: Request) {
         dispatchPrecondition(condition: .onQueue(rootQueue))
         
@@ -1135,7 +1147,7 @@ open class Session {
     }
     
     // MARK: - Adapters and Retriers
-    
+    // 这里有一个优先级的问题, 可以是 Session 的 interceptor, 也可以是 Request 的 interceptor
     func adapter(for request: Request) -> RequestAdapter? {
         if let requestInterceptor = request.interceptor, let sessionInterceptor = interceptor {
             return Interceptor(adapters: [requestInterceptor, sessionInterceptor])
@@ -1182,7 +1194,6 @@ extension Session: RequestDelegate {
             return
         }
         
-        // 所有的一些, 都是通过接口完成的通信. 
         retrier.retry(request, for: self, dueTo: error) { retryResult in
             self.rootQueue.async {
                 guard let retryResultError = retryResult.error else { completion(retryResult); return }
@@ -1193,12 +1204,14 @@ extension Session: RequestDelegate {
         }
     }
     
+    // 如果 request 产生了错误, 可以有 retry 的机会. 
     public func retryRequest(_ request: Request, withDelay timeDelay: TimeInterval?) {
         rootQueue.async {
             let retry: () -> Void = {
                 guard !request.isCancelled else { return }
                 
                 request.prepareForRetry()
+                // 其实就是重新开启了一次. 
                 self.perform(request)
             }
             
@@ -1246,6 +1259,7 @@ extension Session: SessionStateProvider {
     func credential(for task: URLSessionTask, in protectionSpace: URLProtectionSpace) -> URLCredential? {
         dispatchPrecondition(condition: .onQueue(rootQueue))
         
+        // 如果, 没有为这个 Request 配置单独的 credential, 那么会尝试去 defaultCredential 中查找一下.
         return requestTaskMap[task]?.credential ??
         session.configuration.urlCredentialStorage?.defaultCredential(for: protectionSpace)
     }

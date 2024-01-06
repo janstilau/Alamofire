@@ -54,9 +54,15 @@
 # Using Alamofire
 
 ## Introduction
-Alamofire provides an elegant and composable interface to HTTP network requests. It does not implement its own HTTP networking functionality. Instead it builds on top of Apple's [URL Loading System](https://developer.apple.com/documentation/foundation/url_loading_system/) provided by the Foundation framework. At the core of the system is [`URLSession`](https://developer.apple.com/documentation/foundation/urlsession) and the [`URLSessionTask`](https://developer.apple.com/documentation/foundation/urlsessiontask) subclasses. Alamofire wraps these APIs, and many others, in an easier to use interface and provides a variety of functionality necessary for modern application development using HTTP networking. However, it's important to know where many of Alamofire's core behaviors come from, so familiarity with the URL Loading System is important. Ultimately, the networking features of Alamofire are limited by the capabilities of that system, and the behaviors and best practices should always be remembered and observed.
+Alamofire provides an elegant and composable interface to HTTP network requests.
+ It does not implement its own HTTP networking functionality. Instead it builds on top of Apple's [URL Loading System](https://developer.apple.com/documentation/foundation/url_loading_system/) provided by the Foundation framework. 
+ At the core of the system is [`URLSession`](https://developer.apple.com/documentation/foundation/urlsession) and the [`URLSessionTask`](https://developer.apple.com/documentation/foundation/urlsessiontask) subclasses. 
+ Alamofire wraps these APIs, and many others, in an easier to use interface and provides a variety of functionality necessary for modern application development using HTTP networking. 
+ However, it's important to know where many of Alamofire's core behaviors come from, so familiarity with the URL Loading System is important.
+Ultimately, the networking features of Alamofire are limited by the capabilities of that system, and the behaviors and best practices should always be remembered and observed.
 
-Additionally, networking in Alamofire (and the URL Loading System in general) is done _asynchronously_. Asynchronous programming may be a source of frustration to programmers unfamiliar with the concept, but there are [very good reasons](https://developer.apple.com/library/ios/qa/qa1693/_index.html) for doing it this way.
+Additionally, networking in Alamofire (and the URL Loading System in general) is done _asynchronously_.
+ Asynchronous programming may be a source of frustration to programmers unfamiliar with the concept, but there are [very good reasons](https://developer.apple.com/library/ios/qa/qa1693/_index.html) for doing it this way.
 
 #### Aside: The `AF` Namespace and Reference
 Previous versions of Alamofire's documentation used examples like `Alamofire.request()`. This API, while it appeared to require the `Alamofire` prefix, in fact worked fine without it. The `request` method and other functions were available globally in any file with `import Alamofire`. Starting in Alamofire 5, this functionality has been removed and instead the `AF` global is a reference to `Session.default`. This allows Alamofire to offer the same convenience functionality while not having to pollute the global namespace every time Alamofire is used and not having to duplicate the `Session` API globally. Similarly, types extended by Alamofire will use an `af` property extension to separate the functionality Alamofire adds from other extensions.
@@ -65,7 +71,9 @@ Previous versions of Alamofire's documentation used examples like `Alamofire.req
 Alamofire provides a variety of convenience methods for making HTTP requests. At the simplest, just provide a `String` that can be converted into a `URL`:
 
 ```swift
-AF.request("https://httpbin.org/get").response { response in
+AF
+.request("https://httpbin.org/get")
+.response { response in
     debugPrint(response)
 }
 ```
@@ -95,7 +103,8 @@ open func request(_ urlRequest: URLRequestConvertible,
                   interceptor: RequestInterceptor? = nil) -> DataRequest
 ```
 
-This method creates a `DataRequest` for any type conforming to Alamofire's `URLRequestConvertible` protocol. All of the different parameters from the previous version are encapsulated in that value, which can give rise to very powerful abstractions. This is discussed in our [Advanced Usage](https://github.com/Alamofire/Alamofire/blob/master/Documentation/AdvancedUsage.md) documentation.
+This method creates a `DataRequest` for any type conforming to Alamofire's `URLRequestConvertible` protocol. All of the different parameters from the previous version are encapsulated in that value, which can give rise to very powerful abstractions. 
+This is discussed in our [Advanced Usage](https://github.com/Alamofire/Alamofire/blob/master/Documentation/AdvancedUsage.md) documentation.
 
 ### HTTP Methods
 
@@ -131,7 +140,8 @@ AF.request("https://httpbin.org/put", method: .put)
 AF.request("https://httpbin.org/delete", method: .delete)
 ```
 
-It's important to remember that the different HTTP methods may have different semantics and require different parameter encodings depending on what the server expects. For instance, passing body data in a `GET` request is not supported by `URLSession` or Alamofire and will return an error.
+It's important to remember that the different HTTP methods may have different semantics and require different parameter encodings depending on what the server expects.
+ For instance, passing body data in a `GET` request is not supported by `URLSession` or Alamofire and will return an error.
 
 Alamofire also offers an extension on `URLRequest` to bridge the `httpMethod` property that returns a `String` to an `HTTPMethod` value:
 
@@ -173,7 +183,8 @@ AF.request("https://httpbin.org/get") { urlRequest in
 .response(...)
 ```
 
-`RequestModifier`s only apply to request created using methods taking a `URL` and other individual components, not to values created directly from `URLRequestConvertible` values, as those values should be able to set all parameters themselves. Additionally, adoption of `URLRequestConvertible` is recommended once *most* requests start needing to be modified during creation. You can read more in our [Advanced Usage documentation](https://github.com/Alamofire/Alamofire/blob/master/Documentation/AdvancedUsage.md#making-requests).
+`RequestModifier`s only apply to request created using methods taking a `URL` and other individual components, not to values created directly from `URLRequestConvertible` values, as those values should be able to set all parameters themselves.
+ Additionally, adoption of `URLRequestConvertible` is recommended once *most* requests start needing to be modified during creation. You can read more in our [Advanced Usage documentation](https://github.com/Alamofire/Alamofire/blob/master/Documentation/AdvancedUsage.md#making-requests).
 
 ### Request Parameters and Parameter Encoders
 
@@ -197,7 +208,9 @@ AF.request("https://httpbin.org/post",
 
 #### `URLEncodedFormParameterEncoder`
 
-The `URLEncodedFormParameterEncoder` encodes values into a url-encoded string to be set as or appended to any existing URL query string or set as the HTTP body of the request. Controlling where the encoded string is set can be done by setting the `destination` of the encoding. The `URLEncodedFormParameterEncoder.Destination` enumeration has three cases:
+使用表单的方式, 来进行 body 的 coding 化. 
+The `URLEncodedFormParameterEncoder` encodes values into a url-encoded string to be set as or appended to any existing URL query string or set as the HTTP body of the request.
+ Controlling where the encoded string is set can be done by setting the `destination` of the encoding. The `URLEncodedFormParameterEncoder.Destination` enumeration has three cases:
 
 - `.methodDependent` - Applies the encoded query string result to existing query string for `.get`, `.head` and `.delete` requests and sets it as the HTTP body for requests with any other HTTP method.
 - `.queryString` - Sets or appends the encoded string to the query of the request's `URL`.
@@ -205,7 +218,8 @@ The `URLEncodedFormParameterEncoder` encodes values into a url-encoded string to
 
 The `Content-Type` HTTP header of an encoded request with HTTP body is set to `application/x-www-form-urlencoded; charset=utf-8`, if `Content-Type` is not already set.
 
-Internally, `URLEncodedFormParameterEncoder` uses `URLEncodedFormEncoder` to perform the actual encoding from an `Encodable` type to a URL encoded form `String`. This encoder can be used to customize the encoding for various types, including `Array` using the `ArrayEncoding`, `Bool` using the `BoolEncoding`, `Data` using the `DataEncoding`, `Date` using the `DateEncoding`, coding keys using the `KeyEncoding`, and spaces using the `SpaceEncoding`.
+Internally, `URLEncodedFormParameterEncoder` uses `URLEncodedFormEncoder` to perform the actual encoding from an `Encodable` type to a URL encoded form `String`. 
+This encoder can be used to customize the encoding for various types, including `Array` using the `ArrayEncoding`, `Bool` using the `BoolEncoding`, `Data` using the `DataEncoding`, `Date` using the `DateEncoding`, coding keys using the `KeyEncoding`, and spaces using the `SpaceEncoding`.
 
 ##### GET Request With URL-Encoded Parameters
 
@@ -426,7 +440,8 @@ let encodedURLRequest = try URLEncodedFormParameterEncoder.default.encode(parame
 
 ### HTTP Headers
 
-Alamofire includes its own `HTTPHeaders` type, an order-preserving and case-insensitive representation of HTTP header name / value pairs. The `HTTPHeader` types encapsulate a single name / value pair and provides a variety of static values for common headers.
+Alamofire includes its own `HTTPHeaders` type, an order-preserving and case-insensitive representation of HTTP header name / value pairs. 
+The `HTTPHeader` types encapsulate a single name / value pair and provides a variety of static values for common headers.
 
 Adding custom `HTTPHeaders` to a `Request` is as simple as passing a value to one of the `request` methods:
 
@@ -454,6 +469,7 @@ AF.request("https://httpbin.org/headers", headers: headers).responseDecodable(of
 }
 ```
 
+// 对于公共的一些 HEADER, 建议是在 URLSessionConfiguration 中设置, 这样他们会自动在每一个请求中设置. 
 > For HTTP headers that do not change, it is recommended to set them on the `URLSessionConfiguration` so they are automatically applied to any `URLSessionTask` created by the underlying `URLSession`. For more information, see the [Session Configurations](https://github.com/Alamofire/Alamofire/blob/master/Documentation/AdvancedUsage.md#creating-a-session-with-a-urlsessionconfiguration) section.
 
 The default Alamofire `Session` provides a default set of headers for every `Request`. These include:
@@ -506,9 +522,13 @@ AF.request("https://httpbin.org/get").responseDecodable(of: DecodableType.self) 
 }
 ```
 
-In the above example, the `responseDecodable` handler is added to the `DataRequest` to be executed once the `DataRequest` is complete. The closure passed to the handler receives the `DataResponse<DecodableType, AFError>` value produced by the `DecodableResponseSerializer` from the `URLRequest`, `HTTPURLResponse`, `Data`, and `Error` produced by the request.
+In the above example, the `responseDecodable` handler is added to the `DataRequest` to be executed once the `DataRequest` is complete.
+当响应结束了之后, 会触发对应的的数据解析的工作.  
+然后从 DataResponse 中, 去获取到最终的结果, 或者是 Error.
+The closure passed to the handler receives the `DataResponse<DecodableType, AFError>` value produced by the `DecodableResponseSerializer` from the `URLRequest`, `HTTPURLResponse`, `Data`, and `Error` produced by the request.
 
-Rather than blocking execution to wait for a response from the server, this closure is added as a [callback](https://en.wikipedia.org/wiki/Callback_%28computer_programming%29) to handle the response once it's received. The result of a request is only available inside the scope of a response closure. Any execution contingent on the response or data received from the server must be done within a response closure.
+Rather than blocking execution to wait for a response from the server, this closure is added as a [callback](https://en.wikipedia.org/wiki/Callback_%28computer_programming%29) to handle the response once it's received. 
+The result of a request is only available inside the scope of a response closure. Any execution contingent on the response or data received from the server must be done within a response closure.
 
 > Networking in Alamofire is done _asynchronously_. Asynchronous programming may be a source of frustration to programmers unfamiliar with the concept, but there are [very good reasons](https://developer.apple.com/library/ios/qa/qa1693/_index.html) for doing it this way.
 
@@ -516,15 +536,18 @@ Alamofire contains five different data response handlers by default, including:
 
 ```swift
 // Response Handler - Unserialized Response
+// 不做任何的 Decode, 直接交付 Data 数据. 
 func response(queue: DispatchQueue = .main, 
               completionHandler: @escaping (AFDataResponse<Data?>) -> Void) -> Self
 
 // Response Serializer Handler - Serialize using the passed Serializer
+// 直接提供一个反序列化器.
 func response<Serializer: DataResponseSerializerProtocol>(queue: DispatchQueue = .main,
                                                           responseSerializer: Serializer,
                                                           completionHandler: @escaping (AFDataResponse<Serializer.SerializedObject>) -> Void) -> Self
 
 // Response Data Handler - Serialized into Data
+// 
 func responseData(queue: DispatchQueue = .main,
                   dataPreprocessor: DataPreprocessor = DataResponseSerializer.defaultDataPreprocessor,
                   emptyResponseCodes: Set<Int> = DataResponseSerializer.defaultEmptyResponseCodes,
@@ -554,9 +577,11 @@ None of the response handlers perform any validation of the `HTTPURLResponse` it
 > For example, response status codes in the `400..<500` and `500..<600` ranges do NOT automatically trigger an `Error`. Alamofire uses [Response Validation](#response-validation) method chaining to achieve this.
 
 #### Response Handler
+Response Handler
 
 The `response` handler does NOT evaluate any of the response data. It merely forwards on all information directly from the `URLSessionDelegate`. It is the Alamofire equivalent of using `cURL` to execute a `Request`.
 
+没有搜到这个. 是不是过期的 API 了.
 ```swift
 AF.request("https://httpbin.org/get").response { response in
     debugPrint("Response: \(response)")
@@ -589,7 +614,9 @@ AF.request("https://httpbin.org/get").responseString { response in
 
 #### Response `Decodable` Handler
 
-The `responseDecodable` handler uses a `DecodableResponseSerializer` to convert the `Data` returned by the server into the passed `Decodable` type using the specified `DataDecoder` (a protocol abstraction for `Decoder`s which can decode from `Data`). If no errors occur and the server data is successfully decoded into a `Decodable` type, the response `Result` will be a `.success` and the `value` will be of the passed type.
+// 使用这种方式, 就会将 Data 数据, 变为对应的填入的类型. 
+The `responseDecodable` handler uses a `DecodableResponseSerializer` to convert the `Data` returned by the server into the passed `Decodable` type using the specified `DataDecoder` (a protocol abstraction for `Decoder`s which can decode from `Data`). 
+If no errors occur and the server data is successfully decoded into a `Decodable` type, the response `Result` will be a `.success` and the `value` will be of the passed type.
 
 ```swift
 struct DecodableType: Decodable { let url: String }
@@ -601,6 +628,7 @@ AF.request("https://httpbin.org/get").responseDecodable(of: DecodableType.self) 
 
 #### Chained Response Handlers
 
+// 这里说的是, 回调可以不止一个. 
 Response handlers can also be chained:
 
 ```swift
@@ -613,16 +641,20 @@ Alamofire.request("https://httpbin.org/get")
     }
 ```
 
-> It is important to note that using multiple response handlers on the same `Request` requires the server data to be serialized multiple times, once for each response handler. Using multiple response handlers on the same `Request` should generally be avoided as best practice, especially in production environments. They should only be used for debugging or in circumstances where there is no better option.
+> It is important to note that using multiple response handlers on the same `Request` requires the server data to be serialized multiple times, once for each response handler.
+ Using multiple response handlers on the same `Request` should generally be avoided as best practice, especially in production environments. They should only be used for debugging or in circumstances where there is no better option.
 
 #### Response Handler Queue
 
-Closures passed to response handlers are executed on the `.main` queue by default, but a specific `DispatchQueue` can be passed on which to execute the closure. Actual serialization work (conversion of `Data` to some other type) is always executed in the background on either the `rootQueue` or the `serializationQueue`, if one was provided, of the `Session` issuing the request.
+Closures passed to response handlers are executed on the `.main` queue by default, but a specific `DispatchQueue` can be passed on which to execute the closure.
+
+Actual serialization work (conversion of `Data` to some other type) is always executed in the background on either the `rootQueue` or the `serializationQueue`, if one was provided, of the `Session` issuing the request.
 
 ```swift
 let utilityQueue = DispatchQueue.global(qos: .utility)
 
-AF.request("https://httpbin.org/get").responseDecodable(of: DecodableType.self, queue: utilityQueue) { response in
+AF.request("https://httpbin.org/get").
+    responseDecodable(of: DecodableType.self, queue: utilityQueue) { response in
     print("This closure is executed on utilityQueue.")
     debugPrint(response)
 }
@@ -649,8 +681,10 @@ Authentication is handled on the system framework level by [`URLCredential`](htt
 
 #### HTTP Basic Authentication
 
+// 账号密码的方式. 
 The `authenticate` method on a `Request` will automatically provide a `URLCredential` when challenged with a `URLAuthenticationChallenge` when appropriate:
 
+// 当, 碰到了 Baisc 这种验证的时候, 会自动的将 .authenticate(username: user, password: password) 填入进入, 
 ```swift
 let user = "user"
 let password = "password"

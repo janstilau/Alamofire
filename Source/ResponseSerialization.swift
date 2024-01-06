@@ -186,7 +186,8 @@ extension DataRequest {
     ///
     /// - Returns:             The request.
     @discardableResult
-    public func response(queue: DispatchQueue = .main, completionHandler: @escaping (AFDataResponse<Data?>) -> Void) -> Self {
+    public func response(queue: DispatchQueue = .main,
+                         completionHandler: @escaping (AFDataResponse<Data?>) -> Void) -> Self {
         appendResponseSerializer {
             // Start work that should be on the serialization queue.
             let result = AFResult<Data?>(value: self.data, error: self.error)
@@ -354,6 +355,7 @@ extension DownloadRequest {
         appendResponseSerializer {
             // Start work that should be on the serialization queue.
             let start = ProcessInfo.processInfo.systemUptime
+            // 在这里, 是最终的使用 responseSerializer 来完成解析的工作.
             let result: AFResult<Serializer.SerializedObject> = Result {
                 try responseSerializer.serializeDownload(request: self.request,
                                                          response: self.response,
@@ -939,6 +941,7 @@ public final class DecodableResponseSerializer<T: Decodable>: ResponseSerializer
         self.emptyRequestMethods = emptyRequestMethods
     }
 
+    //
     public func serialize(request: URLRequest?, response: HTTPURLResponse?, data: Data?, error: Error?) throws -> T {
         guard error == nil else { throw error! }
 
@@ -957,6 +960,7 @@ public final class DecodableResponseSerializer<T: Decodable>: ResponseSerializer
         data = try dataPreprocessor.preprocess(data)
 
         do {
+            // 最终, 还是使用了 Swift 的 Codable 的技术, 将 Data 变为对应的 Codable 对象了. 
             return try decoder.decode(T.self, from: data)
         } catch {
             throw AFError.responseSerializationFailed(reason: .decodingFailed(error: error))
@@ -1033,6 +1037,7 @@ extension DownloadRequest {
     ///
     /// - Returns:               The request.
     @discardableResult
+    // 这里的 Type, 并没有直接参数到预算里面, 它是使用到类型绑定的技术, 成为了各个参数的里面的泛型参数了.
     public func responseDecodable<T: Decodable>(of type: T.Type = T.self,
                                                 queue: DispatchQueue = .main,
                                                 dataPreprocessor: DataPreprocessor = DecodableResponseSerializer<T>.defaultDataPreprocessor,
@@ -1040,6 +1045,8 @@ extension DownloadRequest {
                                                 emptyResponseCodes: Set<Int> = DecodableResponseSerializer<T>.defaultEmptyResponseCodes,
                                                 emptyRequestMethods: Set<HTTPMethod> = DecodableResponseSerializer<T>.defaultEmptyRequestMethods,
                                                 completionHandler: @escaping (AFDownloadResponse<T>) -> Void) -> Self {
+        // 所有的这些, 其实都是被包装成为了 DecodableResponseSerializer 这个类.
+        // 最终,Data 拼接好了之后, 会使用这个类来完成最后的解析工作.
         response(queue: queue,
                  responseSerializer: DecodableResponseSerializer(dataPreprocessor: dataPreprocessor,
                                                                  decoder: decoder,
