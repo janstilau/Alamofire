@@ -127,6 +127,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		06C0274D2B490ED300ED9722 /* 用法.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "用法.md"; sourceTree = "<group>"; };
 		3106FB6023F8C53A007FAB43 /* ProtectedTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProtectedTests.swift; sourceTree = "<group>"; };
 		3106FB6423F8D9E0007FAB43 /* DataStreamTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataStreamTests.swift; sourceTree = "<group>"; };
 		3111CE8720A77843008315E2 /* EventMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventMonitor.swift; sourceTree = "<group>"; };
@@ -537,6 +538,7 @@
 			children = (
 				312D1E0C1FC2551400E51FF1 /* AdvancedUsage.md */,
 				312D1E0B1FC2551400E51FF1 /* Usage.md */,
+				06C0274D2B490ED300ED9722 /* 用法.md */,
 				4C9E88361F5FB39F000BEC61 /* Migration Guides */,
 			);
 			name = Documentation;
