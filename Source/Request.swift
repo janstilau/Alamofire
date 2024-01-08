@@ -124,6 +124,7 @@ public class Request {
     /// `State` of the `Request`.
     public var state: State { $mutableState.state }
     // 作为类的设计者, 将良好的接口暴露出去, 是很好的设计思路.
+    // 获取数据的时候,
     /// Returns whether `state` is `.initialized`.
     public var isInitialized: Bool { state == .initialized }
     /// Returns whether `state is `.resumed`.
@@ -277,7 +278,8 @@ public class Request {
     ///
     /// - Parameter request: The `URLRequest` created.
     
-    // 在 Session 中, 会不断地调用 Request 中的方法, 来完成相关状态的修改.
+    // 当这个网络任务的第一个 URLRequest 被创建出来的时候.
+    // 后面会累加 retry, 重定向, modified 各种 request.
     func didCreateInitialURLRequest(_ request: URLRequest) {
         
         dispatchPrecondition(condition: .onQueue(underlyingQueue))
@@ -292,6 +294,7 @@ public class Request {
     /// - Note: Triggers retry.
     ///
     /// - Parameter error: `AFError` thrown from the failed creation.
+    // 这是在最初的阶段, 所以这里失败了, 就直接去执行最后的 retryOrFinish 了
     func didFailToCreateURLRequest(with error: AFError) {
         dispatchPrecondition(condition: .onQueue(underlyingQueue))
         
@@ -312,7 +315,6 @@ public class Request {
     ///   - adaptedRequest: The `URLRequest` returned by the `RequestAdapter`.
     // 如果在 Session 中, 使用修改器, 会走到这一步.
     // 记录一下修改完毕的 Request.
-    // 但是, 在 Request 里面, 是记录了所有的 URLRequest 的对象.
     func didAdaptInitialRequest(_ initialRequest: URLRequest, to adaptedRequest: URLRequest) {
         dispatchPrecondition(condition: .onQueue(underlyingQueue))
         
@@ -408,6 +410,7 @@ public class Request {
     }
     
     /// Called when suspension is completed.
+    // 这都是 sustpend() 函数的后续.
     func didSuspend() {
         dispatchPrecondition(condition: .onQueue(underlyingQueue))
         
@@ -477,6 +480,7 @@ public class Request {
     ///   - task:  The `URLSessionTask` which completed.
     ///   - error: The `AFError` `task` may have completed with. If `error` has already been set on the instance, this
     ///            value is ignored.
+    // URLSession Delegate 事件. 会触发到这里.
     // 就算是前面 Cancel 掉了, 这里其实还是会被触发的. 
     func didCompleteTask(_ task: URLSessionTask, with error: AFError?) {
         dispatchPrecondition(condition: .onQueue(underlyingQueue))
@@ -508,6 +512,7 @@ public class Request {
     func retryOrFinish(error: AFError?) {
         dispatchPrecondition(condition: .onQueue(underlyingQueue))
         
+        // 如果没有错, 就是 finish 了, 如果有错, 那么就走 retry 的逻辑.
         guard !isCancelled, let error = error, let delegate = delegate else { finish(); return }
         
         // 这里是交给了 Session
@@ -553,6 +558,7 @@ public class Request {
     
     // 在增加了对于相应的处理之后, 才进行的 真正的网络请求.
     // 也可以外界调用.
+    // 这个方法, 是被 response 配置的时候调用的.
     func appendResponseSerializer(_ closure: @escaping () -> Void) {
         $mutableState.write { mutableState in
             mutableState.responseSerializers.append(closure)
@@ -580,6 +586,7 @@ public class Request {
         var responseSerializer: (() -> Void)?
         
         $mutableState.write { mutableState in
+            // 从后面开始找, 找最新的.
             let responseSerializerIndex = mutableState.responseSerializerCompletions.count
             
             if responseSerializerIndex < mutableState.responseSerializers.count {
@@ -634,6 +641,7 @@ public class Request {
     /// - Parameter completion: The completion handler provided with the response serializer, called when all serializers
     ///                         are complete.
     func responseSerializerDidComplete(completion: @escaping () -> Void) {
+        // 这个方法, 会在序列化响应时调用.
         $mutableState.write { $0.responseSerializerCompletions.append(completion) }
         processNextResponseSerializer()
     }
@@ -691,6 +699,7 @@ public class Request {
     
     // MARK: State
     
+    // 各种状态修改的函数, 都是自身的数据变化, 然后调用 datatask 的对应的方法, 引起真正的 URL Loading 的状态变化.
     /// Cancels the instance. Once cancelled, a `Request` can no longer be resumed or suspended.
     ///
     /// - Returns: The instance.
@@ -775,6 +784,7 @@ public class Request {
 }
 
 // Request 是一个状态的集合体, 提供了各种方便的方法, 进行了值的赋值.
+// 这里就是那个配置的过程.
 extension Request {
     // 各种 API, 都是在做闭包的存储.
     // 形成链式调用.
@@ -1191,6 +1201,7 @@ public class DataRequest: Request {
     ///
     /// - Parameter data: The `Data` received.
     func didReceive(data: Data) {
+        // 这里就是比较简单的, data 拼接的逻辑了.
         $dataMutableState.write { mutableState in
             if mutableState.data == nil {
                 mutableState.data = data
@@ -1205,6 +1216,7 @@ public class DataRequest: Request {
     func didReceiveResponse(_ response: HTTPURLResponse,
                             completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
         $dataMutableState.read { dataMutableState in
+            // 这里相比较直接调用 completionHandler, 还有了 queue 的调度.
             guard let httpResponseHandler = dataMutableState.httpResponseHandler else {
                 underlyingQueue.async { completionHandler(.allow) }
                 return
@@ -1851,6 +1863,7 @@ public class DownloadRequest: Request {
     ///   - session: `URLSession` used to create the `URLSessionTask`.
     ///
     /// - Returns:   The `URLSessionTask` created.
+    // 还是使用 Session 来完成下载的事情.
     public func task(forResumeData data: Data, using session: URLSession) -> URLSessionTask {
         session.downloadTask(withResumeData: data)
     }

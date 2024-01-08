@@ -106,7 +106,7 @@ final class Protected<T> {
         try lock.around { try closure(&self.value) }
     }
 
-    // 就算是使用 $mutableState.state 的方式, 获取 state 的这个值, 还是会在锁的环境下. 
+    // 就算是使用 $mutableState.state 的方式, 获取 state 的这个值, 还是会在锁的环境下.
     subscript<Property>(dynamicMember keyPath: WritableKeyPath<T, Property>) -> Property {
         get { lock.around { value[keyPath: keyPath] } }
         set { lock.around { value[keyPath: keyPath] = newValue } }

@@ -1211,7 +1211,7 @@ extension Session: RequestDelegate {
                 guard !request.isCancelled else { return }
                 
                 request.prepareForRetry()
-                // 其实就是重新开启了一次. 
+                // 其实就是重新开启了一次.
                 self.perform(request)
             }
             

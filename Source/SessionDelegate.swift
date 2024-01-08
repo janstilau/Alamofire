@@ -243,6 +243,7 @@ extension SessionDelegate: URLSessionTaskDelegate {
 // MARK: URLSessionDataDelegate
 
 extension SessionDelegate: URLSessionDataDelegate {
+    // 当收到了 URLResponse 的时候会被调用.
     open func urlSession(_ session: URLSession,
                          dataTask: URLSessionDataTask,
                          didReceive response: URLResponse,
@@ -275,6 +276,7 @@ extension SessionDelegate: URLSessionDataDelegate {
         }
     }
 
+    // URL Cache 进行 reponse 和 data 存储的过程. 
     open func urlSession(_ session: URLSession,
                          dataTask: URLSessionDataTask,
                          willCacheResponse proposedResponse: CachedURLResponse,
@@ -330,6 +332,7 @@ extension SessionDelegate: URLSessionDownloadDelegate {
                                                totalBytesExpectedToWrite: totalBytesExpectedToWrite)
     }
 
+    // 这里就是下载完毕了.
     open func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
         eventMonitor?.urlSession(session, downloadTask: downloadTask, didFinishDownloadingTo: location)
 
@@ -357,7 +360,8 @@ extension SessionDelegate: URLSessionDownloadDelegate {
                 let directory = destination.deletingLastPathComponent()
                 try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
             }
-
+            
+            // 经典的移动文件的环节. 
             try fileManager.moveItem(at: location, to: destination)
 
             request.didFinishDownloading(using: downloadTask, with: .success(destination))
