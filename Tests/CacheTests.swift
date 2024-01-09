@@ -38,7 +38,7 @@ final class CacheTestCase: BaseTestCase {
     var manager: Session!
     
     var requests: [CacheControl: URLRequest] = [:] // 这里面, 存储的是各缓存策略发起的请求.
-    var timestamps: [CacheControl: String] = [:] // 这里面, 存储的是响应时间的时间点.
+    var respTimestamps: [CacheControl: String] = [:] // 这里面, 存储的是响应时间的时间点.
     
     // MARK: - Setup and Teardown
     
@@ -80,7 +80,7 @@ final class CacheTestCase: BaseTestCase {
         super.tearDown()
         
         requests.removeAll()
-        timestamps.removeAll()
+        respTimestamps.removeAll()
         
         urlCache.removeAllCachedResponses()
     }
@@ -98,7 +98,8 @@ final class CacheTestCase: BaseTestCase {
         let serialQueue = DispatchQueue(label: "org.alamofire.cache-tests")
         
         // 这里触发了各种请求, 然后进行存储.
-        // 这里使用了 dispatchGroup, 进行了线程的执行控制.
+        // 这里使用了 dispatchGroup, 进行了线程的执行控制. 当所有的请求回来之后, 才会继续后续的逻辑.
+        // dispatchGroup 是这种需要等待的代码, 经常使用的工具.
         for cacheControl in CacheControl.allCases {
             dispatchGroup.enter()
             
@@ -106,7 +107,7 @@ final class CacheTestCase: BaseTestCase {
                                        queue: serialQueue,
                                        completion: { _, response in
                 let timestamp = response!.headers["Date"]
-                self.timestamps[cacheControl] = timestamp
+                self.respTimestamps[cacheControl] = timestamp
                 
                 dispatchGroup.leave()
             })
@@ -133,6 +134,9 @@ final class CacheTestCase: BaseTestCase {
         let request = manager.request(urlRequest)
         
         request.response(queue: queue) { response in
+            print("Request is \(response.request!)")
+            print("Response is \(response.response)")
+            print("Data is \(response.result.map({ String.init(data: $0 ?? Data(), encoding: .utf8) }))")
             completion(response.request, response.response)
         }
         
@@ -160,8 +164,9 @@ final class CacheTestCase: BaseTestCase {
         verifyResponse(response, forCacheControl: cacheControl, isCachedResponse: shouldReturnCachedResponse)
     }
     
+    // 如果是使用缓存, 那么获取到的 Response 应该和存储的是一样的.
     private func verifyResponse(_ response: HTTPURLResponse?, forCacheControl cacheControl: CacheControl, isCachedResponse: Bool) {
-        guard let cachedResponseTimestamp = timestamps[cacheControl] else {
+        guard let cachedResponseTimestamp = respTimestamps[cacheControl] else {
             XCTFail("cached response timestamp should not be nil")
             return
         }
@@ -197,6 +202,7 @@ final class CacheTestCase: BaseTestCase {
         let noStoreResponse = urlCache.cachedResponse(for: noStoreRequest)
         
         // Then
+        // 这里的响应有点问题, httpbin 并没有按照策略返回 HttpRespHeader. 所有的都是返回的 Etag
         XCTAssertNotNil(publicResponse, "\(CacheControl.publicControl) response should not be nil")
         XCTAssertNotNil(privateResponse, "\(CacheControl.privateControl) response should not be nil")
         XCTAssertNotNil(maxAgeNonExpiredResponse, "\(CacheControl.maxAgeNonExpired) response should not be nil")
@@ -209,7 +215,9 @@ final class CacheTestCase: BaseTestCase {
         let cachePolicy: URLRequest.CachePolicy = .useProtocolCachePolicy
         
         // 使用对应的缓存管理策略对应的 URL 发送网络请求, 然后判断, 响应是否是从 URLCache 里面获取到的.
-        // 从这里来看, 应该是只有 maxAgeExpired 这种方式, 才会使用到缓存中的响应
+        /*
+         按照 GPT 的解释, 除了 maxAgeNonExpired max-age=3600 这种明确了缓存时长的, 其他的都是只是存储, 但是不会使用.
+         */
         executeTest(cachePolicy: cachePolicy, cacheControl: .publicControl, shouldReturnCachedResponse: false)
         executeTest(cachePolicy: cachePolicy, cacheControl: .privateControl, shouldReturnCachedResponse: false)
         executeTest(cachePolicy: cachePolicy, cacheControl: .maxAgeNonExpired, shouldReturnCachedResponse: true)
@@ -221,6 +229,8 @@ final class CacheTestCase: BaseTestCase {
     func testIgnoreLocalCacheDataPolicy() {
         let cachePolicy: URLRequest.CachePolicy = .reloadIgnoringLocalCacheData
         
+        // 不管本地的缓存, 直接使用远端的数据.
+        // 所以这里的响应的数据, 应该和事先存储的不是一个数据.
         executeTest(cachePolicy: cachePolicy, cacheControl: .publicControl, shouldReturnCachedResponse: false)
         executeTest(cachePolicy: cachePolicy, cacheControl: .privateControl, shouldReturnCachedResponse: false)
         executeTest(cachePolicy: cachePolicy, cacheControl: .maxAgeNonExpired, shouldReturnCachedResponse: false)
@@ -232,6 +242,7 @@ final class CacheTestCase: BaseTestCase {
     func testUseLocalCacheDataIfExistsOtherwiseLoadFromNetworkPolicy() {
         let cachePolicy: URLRequest.CachePolicy = .returnCacheDataElseLoad
         
+        // 优先缓存. 所以策略就是, 只要 URLCache 里面有值, 就用里面的.
         executeTest(cachePolicy: cachePolicy, cacheControl: .publicControl, shouldReturnCachedResponse: true)
         executeTest(cachePolicy: cachePolicy, cacheControl: .privateControl, shouldReturnCachedResponse: true)
         executeTest(cachePolicy: cachePolicy, cacheControl: .maxAgeNonExpired, shouldReturnCachedResponse: true)
@@ -243,6 +254,9 @@ final class CacheTestCase: BaseTestCase {
     func testUseLocalCacheDataAndDontLoadFromNetworkPolicy() {
         let cachePolicy: URLRequest.CachePolicy = .returnCacheDataDontLoad
         
+        /*
+         只会使用缓存的, 所以有缓存的可以拿到数据.
+         */
         executeTest(cachePolicy: cachePolicy, cacheControl: .publicControl, shouldReturnCachedResponse: true)
         executeTest(cachePolicy: cachePolicy, cacheControl: .privateControl, shouldReturnCachedResponse: true)
         executeTest(cachePolicy: cachePolicy, cacheControl: .maxAgeNonExpired, shouldReturnCachedResponse: true)
@@ -254,6 +268,9 @@ final class CacheTestCase: BaseTestCase {
         var response: HTTPURLResponse?
         
         // When
+        /*
+         No-Store 的因为本地没有, 所以一直到最后, 就拿不到数据了. 
+         */
         startRequest(cacheControl: .noStore, cachePolicy: cachePolicy) { _, responseResponse in
             response = responseResponse
             requestDidFinish.fulfill()

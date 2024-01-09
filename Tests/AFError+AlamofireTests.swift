@@ -25,6 +25,7 @@
 import Alamofire
 import Foundation
 
+// Enum 作为一个复杂类型, 应该提供合适的 Get 方法, 方便使用者进行测试. 
 extension AFError {
     // ParameterEncodingFailureReason
 

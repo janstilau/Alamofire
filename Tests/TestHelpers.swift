@@ -222,6 +222,10 @@ struct Endpoint {
     }
 }
 
+/*
+ Endpoint 是一个数据类. 在这个数据类里面, 实现各种协议.
+ 各种协议的结合, 实现了最终, 数据类到 URLRequest 类的过渡. 
+ */
 extension Endpoint: URLRequestConvertible {
     var urlRequest: URLRequest { try! asURLRequest() }
 

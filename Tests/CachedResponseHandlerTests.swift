@@ -1,27 +1,3 @@
-//
-//  CachedResponseHandlerTests.swift
-//
-//  Copyright (c) 2019 Alamofire Software Foundation (http://alamofire.org/)
-//
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
-//
-
 import Alamofire
 import Foundation
 import XCTest
@@ -29,6 +5,9 @@ import XCTest
 final class CachedResponseHandlerTestCase: BaseTestCase {
     // MARK: Tests - Per Request
 
+    /*
+     因为这是一个异步的机制, 所以所有的都是说, 在 expection 中进行等待, 在之后来判断相关的代码是否按照预料的进行执行.
+     */
     func testThatRequestCachedResponseHandlerCanCacheResponse() {
         // Given
         let session = session()
@@ -37,6 +16,9 @@ final class CachedResponseHandlerTestCase: BaseTestCase {
         let expectation = expectation(description: "Request should cache response")
 
         // When
+        // 使用 cacheResponse, 就是专门配置了这个 Request 应该使用什么样的策略.
+        // 这里策略就是存储 Cache.
+        // 最后验证的时候, 就是验证这个进行了存储.
         let request = session.request(.default).cacheResponse(using: ResponseCacher.cache).response { resp in
             response = resp
             expectation.fulfill()
@@ -57,6 +39,7 @@ final class CachedResponseHandlerTestCase: BaseTestCase {
         let expectation = expectation(description: "Request should not cache response")
 
         // When
+        // 在这里, 明确的规定了, 这个 Request 不进行存储, 所以最后验证的时候, 就是验证不存在.
         let request = session.request(.default).cacheResponse(using: ResponseCacher.doNotCache).response { resp in
             response = resp
             expectation.fulfill()
@@ -84,6 +67,7 @@ final class CachedResponseHandlerTestCase: BaseTestCase {
                               storagePolicy: .allowed)
         })
 
+        // 当需要缓存的时候, 会调用 ResponseCacher 中存储的闭包, 对缓存进行修改.
         let request = session.request(.default).cacheResponse(using: cacher).response { resp in
             response = resp
             expectation.fulfill()
@@ -107,6 +91,7 @@ final class CachedResponseHandlerTestCase: BaseTestCase {
         let expectation = expectation(description: "Request should cache response")
 
         // When
+        // 如果, 什么都没有做, 那么其实会进行缓存的.
         let request = session.request(.default).response { resp in
             response = resp
             expectation.fulfill()
@@ -119,6 +104,7 @@ final class CachedResponseHandlerTestCase: BaseTestCase {
         XCTAssertTrue(session.cachedResponseExists(for: request))
     }
 
+    // Session 设置了不进行缓存, 如果单个 Request 不进行设置的话, 就使用 Session 中配置的值.
     func testThatSessionCachedResponseHandlerCanNotCacheResponse() {
         // Given
         let session = session(using: ResponseCacher.doNotCache)
@@ -139,6 +125,7 @@ final class CachedResponseHandlerTestCase: BaseTestCase {
         XCTAssertFalse(session.cachedResponseExists(for: request))
     }
 
+    // Session 设置了 Modify 的配置.
     func testThatSessionCachedResponseHandlerCanModifyCacheResponse() {
         // Given
         let cacher = ResponseCacher(behavior: .modify { _, response in
@@ -168,7 +155,7 @@ final class CachedResponseHandlerTestCase: BaseTestCase {
     }
 
     // MARK: Tests - Per Request Prioritization
-
+    // 优先使用 Request 里面, 设置的 ResponserCacher
     func testThatRequestCachedResponseHandlerIsPrioritizedOverSessionCachedResponseHandler() {
         // Given
         let session = session(using: ResponseCacher.cache)
@@ -195,6 +182,7 @@ final class CachedResponseHandlerTestCase: BaseTestCase {
         let configuration = URLSessionConfiguration.af.default
         let capacity = 100_000_000
         let cache: URLCache
+        
         #if targetEnvironment(macCatalyst)
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         cache = URLCache(memoryCapacity: capacity, diskCapacity: capacity, directory: directory)
@@ -202,6 +190,7 @@ final class CachedResponseHandlerTestCase: BaseTestCase {
         let directory = (NSTemporaryDirectory() as NSString).appendingPathComponent(UUID().uuidString)
         cache = URLCache(memoryCapacity: capacity, diskCapacity: capacity, diskPath: directory)
         #endif
+        
         configuration.urlCache = cache
 
         return Session(configuration: configuration, cachedResponseHandler: handler)

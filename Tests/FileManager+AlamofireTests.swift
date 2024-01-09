@@ -24,6 +24,7 @@
 
 import Foundation
 
+// 所有的, 都是 Static, 这里都是工具方法的集合
 extension FileManager {
     // MARK: - Common Directories
 
@@ -37,6 +38,7 @@ extension FileManager {
 
     // MARK: - File System Modification
 
+    // 也会有这种, catch 的包装. 只要最终的 bool 结果.
     @discardableResult
     static func createDirectory(atPath path: String) -> Bool {
         do {
