@@ -206,14 +206,14 @@ struct Endpoint {
 
     var scheme = Scheme.http
     var port: Int { host.port(for: scheme) }
-    var host = Host.localhost
+    var host = Host.httpBin
     var path = Path.method(.get)
     var method: HTTPMethod = .get
     var headers: HTTPHeaders = .init()
     
     var timeout: TimeInterval = 60
     var queryItems: [URLQueryItem] = []
-    var cachePolicy: URLRequest.CachePolicy = .useProtocolCachePolicy
+    var cachePolicy: URLRequest.CachePolicy = .useProtocolCachePolicy // 这里控制了, 本次请求实际上应该使用缓存与否. 
 
     func modifying<T>(_ keyPath: WritableKeyPath<Endpoint, T>, to value: T) -> Endpoint {
         var copy = self
