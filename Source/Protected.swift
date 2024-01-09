@@ -62,6 +62,7 @@ final class UnfairLock: Lock {
 /// A thread-safe wrapper around a value.
 @propertyWrapper
 @dynamicMemberLookup
+// 这是一个 Class.
 final class Protected<T> {
     #if canImport(Darwin)
     private let lock = UnfairLock()
@@ -106,6 +107,7 @@ final class Protected<T> {
         try lock.around { try closure(&self.value) }
     }
 
+    // 注意, 这里的类型是 T.
     // 就算是使用 $mutableState.state 的方式, 获取 state 的这个值, 还是会在锁的环境下.
     subscript<Property>(dynamicMember keyPath: WritableKeyPath<T, Property>) -> Property {
         get { lock.around { value[keyPath: keyPath] } }
