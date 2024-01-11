@@ -49,6 +49,10 @@ class ProtocolExampleViewController: UIViewController {
         addButton(title: "SelfDataProtocolDelegate") {
             self.selfDataProtocolDelegate()
         }
+        
+        addButton(title: "DeinitTest") {
+            self.deinitTest()
+        }
     }
     
     private func setupScrollView() {
@@ -134,7 +138,7 @@ extension ProtocolExampleViewController {
     
     func jsonDataProtocolDelegate() {
         guard let fileURL = Bundle.main.url(forResource: "JSONExample", withExtension: "txt"),
-              let fileContents = try? String(contentsOf: fileURL) else {
+              let fileContents = try? String(contentsOf: fileURL).trimmingCharacters(in: .whitespacesAndNewlines) else {
             print("File not found or cannot be read")
             return
         }
@@ -223,7 +227,7 @@ extension ProtocolExampleViewController {
     
     func selfDataProtocolDelegate() {
         guard let fileURL = Bundle.main.url(forResource: "SelfJSONExample", withExtension: "txt"),
-              let fileContents = try? String(contentsOf: fileURL) else {
+              let fileContents = try? String(contentsOf: fileURL).trimmingCharacters(in: .whitespacesAndNewlines) else {
             print("File not found or cannot be read")
             return
         }
@@ -240,14 +244,51 @@ extension ProtocolExampleViewController {
     }
 }
 
+class Dog {
+    var action: (() -> ())?
+    func bark() {
+        print("wang")
+    }
+    func doAction() {
+        action?()
+    }
+}
+
+class Person {
+    var name = "PersonName"
+    lazy var dog: Dog = {
+        let value = Dog()
+        value.action = { [weak self] in
+            print(self?.name)
+        }
+        return value
+    }()
+    
+    deinit {
+        dog.bark()
+        dog.doAction()
+    }
+}
+
+extension ProtocolExampleViewController {
+    func deinitTest() {
+        let personValue = Person()
+    }
+}
+
 extension ProtocolExampleViewController: URLSessionDelegate, URLSessionDataDelegate, URLSessionTaskDelegate {
     
-    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse, completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
+    func urlSession(_ session: URLSession,
+                    dataTask: URLSessionDataTask,
+                    didReceive response: URLResponse,
+                    completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
         print("didReceive response: \(response)")
         completionHandler(.allow)
     }
     
-    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+    func urlSession(_ session: URLSession,
+                    task: URLSessionTask,
+                    didCompleteWithError error: Error?) {
         if let error {
             print("didCompleteWithError :\(error), protocol :\(protocolName)")
         } else {
@@ -264,7 +305,9 @@ extension ProtocolExampleViewController: URLSessionDelegate, URLSessionDataDeleg
         
     }
     
-    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
+    func urlSession(_ session: URLSession,
+                    dataTask: URLSessionDataTask,
+                    didReceive data: Data) {
         print("didReceive Data \(data.count)")
         mutableData.append(data)
     }
@@ -274,7 +317,10 @@ extension ProtocolExampleViewController: URLSessionDelegate, URLSessionDataDeleg
         completionHandler(proposedResponse)
     }
     
-    func urlSession(_ session: URLSession, task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+    func urlSession(_ session: URLSession,
+                    task: URLSessionTask,
+                    didReceive challenge: URLAuthenticationChallenge,
+                    completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
         print("didReceive challenge. session: \(session), task: \(task), challenge: \(challenge)")
         let userNamePasswork = URLCredential(user: "lgq01", password: "lgq01Pwd", persistence: .permanent)
         completionHandler(.useCredential, userNamePasswork)
