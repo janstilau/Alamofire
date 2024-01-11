@@ -30,7 +30,7 @@ struct Endpoint {
 
         func port(for scheme: Scheme) -> Int {
             switch self {
-            case .localhost: return 3000
+            case .localhost: return 3001
             case .httpBin: return scheme.port
             }
         }

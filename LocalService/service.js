@@ -15,7 +15,11 @@ app.get('/cache', (req, res) => {
     const cacheControl = req.query['Cache-Control'];
 
     // 设置 Cache-Control 响应头
-    res.setHeader('Cache-Control', cacheControl || 'no-cache');
+    if (cacheControl != "empty") {
+        res.setHeader('Cache-Control', cacheControl || 'no-cache');
+    } else {
+        res.setHeader('EmptyFlag', 'This is Empty Flag');
+    }
 
     // 返回不同的 JSON 数据
     switch (cacheControl) {
@@ -49,12 +53,21 @@ app.get('/cache', (req, res) => {
                 res.json({ message: 'No store directive', cacheControl });
             }, 2400);
             break;
+        case 'empty':
+            setTimeout(() => {
+                res.json({ message: 'Empty directive', cacheControl });
+            }, 2400);
+        break;
         default:
             res.json({ message: 'Default no-cache', cacheControl: 'no-cache' });
     }
 });
 
-const port = 3000;
+app.head('/cache', (req, res) => {
+    res.json({ message: 'Head', cacheControl: 'head method triiger' });
+});
+
+const port = 3001;
 app.listen(port, () => {
     console.log(`Server running on http://localhost:${port}`);
 });

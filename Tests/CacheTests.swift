@@ -30,6 +30,7 @@ final class CacheTestCase: BaseTestCase {
         case maxAgeExpired = "max-age=0"
         case noCache = "no-cache"
         case noStore = "no-store"
+        case empty = "empty"
     }
     
     // MARK: - Properties
@@ -189,6 +190,7 @@ final class CacheTestCase: BaseTestCase {
         let maxAgeExpiredRequest = requests[.maxAgeExpired]!
         let noCacheRequest = requests[.noCache]!
         let noStoreRequest = requests[.noStore]!
+        let emptyRequest = requests[.empty]!
         
         // When
         let publicResponse = urlCache.cachedResponse(for: publicRequest)
@@ -197,6 +199,7 @@ final class CacheTestCase: BaseTestCase {
         let maxAgeExpiredResponse = urlCache.cachedResponse(for: maxAgeExpiredRequest)
         let noCacheResponse = urlCache.cachedResponse(for: noCacheRequest)
         let noStoreResponse = urlCache.cachedResponse(for: noStoreRequest)
+        let emptyResponse = urlCache.cachedResponse(for: emptyRequest)
         
         // Then
         // 这里的响应有点问题, httpbin 并没有按照策略返回 HttpRespHeader. 所有的都是返回的 Etag
@@ -206,6 +209,8 @@ final class CacheTestCase: BaseTestCase {
         XCTAssertNotNil(maxAgeExpiredResponse, "\(CacheControl.maxAgeExpired) response should not be nil")
         XCTAssertNotNil(noCacheResponse, "\(CacheControl.noCache) response should not be nil")
         XCTAssertNil(noStoreResponse, "\(CacheControl.noStore) response should be nil")
+        // empty 里面, 并没有相关的 Cache-Control 的协议头, 但是还是被缓存到了 urlCache 的内部.
+        XCTAssertNil(emptyResponse, "\(CacheControl.empty) response should be nil")
         
         /*
          public: 这个指令允许响应被任何缓存（包括共享缓存和私有缓存）存储。因此，public 指令的响应通常会被缓存。
@@ -221,13 +226,14 @@ final class CacheTestCase: BaseTestCase {
     func testDefaultCachePolicy() {
         let cachePolicy: URLRequest.CachePolicy = .useProtocolCachePolicy
         
-        // 使用对应的缓存管理策略对应的 URL 发送网络请求, 然后判断, 响应是否是从 URLCache 里面获取到的.
+        // 使用 useProtocolCachePolicy 的这种方式, 只有明确的设置了 Cache-Control 的响应头, 并且还在有效期里面的 max-age=3600, 才会返回.
         executeTest(cachePolicy: cachePolicy, cacheControl: .publicControl, shouldReturnCachedResponse: false)
         executeTest(cachePolicy: cachePolicy, cacheControl: .privateControl, shouldReturnCachedResponse: false)
         executeTest(cachePolicy: cachePolicy, cacheControl: .maxAgeNonExpired, shouldReturnCachedResponse: true)
         executeTest(cachePolicy: cachePolicy, cacheControl: .maxAgeExpired, shouldReturnCachedResponse: false)
         executeTest(cachePolicy: cachePolicy, cacheControl: .noCache, shouldReturnCachedResponse: false)
         executeTest(cachePolicy: cachePolicy, cacheControl: .noStore, shouldReturnCachedResponse: false)
+        executeTest(cachePolicy: cachePolicy, cacheControl: .empty, shouldReturnCachedResponse: false)
         /*
          在您的测试用例中，使用的 URLRequest.CachePolicy 是 .useProtocolCachePolicy。这个缓存策略指示 URLSession 遵循 HTTP 协议的缓存控制头（如 Cache-Control 和 Expires）来决定是否使用缓存。这意味着缓存的使用将基于服务器返回的响应头。让我们分析一下您的测试用例：
 
@@ -250,6 +256,7 @@ final class CacheTestCase: BaseTestCase {
         executeTest(cachePolicy: cachePolicy, cacheControl: .maxAgeExpired, shouldReturnCachedResponse: false)
         executeTest(cachePolicy: cachePolicy, cacheControl: .noCache, shouldReturnCachedResponse: false)
         executeTest(cachePolicy: cachePolicy, cacheControl: .noStore, shouldReturnCachedResponse: false)
+        executeTest(cachePolicy: cachePolicy, cacheControl: .empty, shouldReturnCachedResponse: false)
     }
     
     func testUseLocalCacheDataIfExistsOtherwiseLoadFromNetworkPolicy() {
@@ -262,6 +269,7 @@ final class CacheTestCase: BaseTestCase {
         executeTest(cachePolicy: cachePolicy, cacheControl: .maxAgeExpired, shouldReturnCachedResponse: true)
         executeTest(cachePolicy: cachePolicy, cacheControl: .noCache, shouldReturnCachedResponse: true)
         executeTest(cachePolicy: cachePolicy, cacheControl: .noStore, shouldReturnCachedResponse: false)
+        executeTest(cachePolicy: cachePolicy, cacheControl: .empty, shouldReturnCachedResponse: true)
     }
     
     func testUseLocalCacheDataAndDontLoadFromNetworkPolicy() {
@@ -275,6 +283,7 @@ final class CacheTestCase: BaseTestCase {
         executeTest(cachePolicy: cachePolicy, cacheControl: .maxAgeNonExpired, shouldReturnCachedResponse: true)
         executeTest(cachePolicy: cachePolicy, cacheControl: .maxAgeExpired, shouldReturnCachedResponse: true)
         executeTest(cachePolicy: cachePolicy, cacheControl: .noCache, shouldReturnCachedResponse: true)
+        executeTest(cachePolicy: cachePolicy, cacheControl: .empty, shouldReturnCachedResponse: true)
         
         // Given
         let requestDidFinish = expectation(description: "don't load from network request finished")
