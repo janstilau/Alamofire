@@ -30,7 +30,10 @@ final class CacheTestCase: BaseTestCase {
         case maxAgeExpired = "max-age=0"
         case noCache = "no-cache"
         case noStore = "no-store"
+        
         case empty = "empty"
+        case expireAlread = "expireAlread"
+        case expireNextDay = "expireNextDay"
     }
     
     // MARK: - Properties
@@ -70,7 +73,6 @@ final class CacheTestCase: BaseTestCase {
             }()
             
             let manager = Session(configuration: configuration)
-            
             return manager
         }()
         
@@ -169,6 +171,9 @@ final class CacheTestCase: BaseTestCase {
             return
         }
         
+        if cacheControl == .expireNextDay {
+            print("expireNextDay")
+        }
         if let response = response, let timestamp = response.headers["Date"] {
             if isCachedResponse {
                 XCTAssertEqual(timestamp, cachedResponseTimestamp, "timestamps should be equal")
@@ -191,6 +196,8 @@ final class CacheTestCase: BaseTestCase {
         let noCacheRequest = requests[.noCache]!
         let noStoreRequest = requests[.noStore]!
         let emptyRequest = requests[.empty]!
+        let expiredAlreadyRequest = requests[.expireAlread]!
+        let expireNextDayRequest = requests[.expireNextDay]!
         
         // When
         let publicResponse = urlCache.cachedResponse(for: publicRequest)
@@ -200,9 +207,10 @@ final class CacheTestCase: BaseTestCase {
         let noCacheResponse = urlCache.cachedResponse(for: noCacheRequest)
         let noStoreResponse = urlCache.cachedResponse(for: noStoreRequest)
         let emptyResponse = urlCache.cachedResponse(for: emptyRequest)
+        let expiredAlreadyResponse = urlCache.cachedResponse(for: expiredAlreadyRequest)
+        let expireNextDayResponse = urlCache.cachedResponse(for: expireNextDayRequest)
         
         // Then
-        // 这里的响应有点问题, httpbin 并没有按照策略返回 HttpRespHeader. 所有的都是返回的 Etag
         XCTAssertNotNil(publicResponse, "\(CacheControl.publicControl) response should not be nil")
         XCTAssertNotNil(privateResponse, "\(CacheControl.privateControl) response should not be nil")
         XCTAssertNotNil(maxAgeNonExpiredResponse, "\(CacheControl.maxAgeNonExpired) response should not be nil")
@@ -210,7 +218,10 @@ final class CacheTestCase: BaseTestCase {
         XCTAssertNotNil(noCacheResponse, "\(CacheControl.noCache) response should not be nil")
         XCTAssertNil(noStoreResponse, "\(CacheControl.noStore) response should be nil")
         // empty 里面, 并没有相关的 Cache-Control 的协议头, 但是还是被缓存到了 urlCache 的内部.
-        XCTAssertNil(emptyResponse, "\(CacheControl.empty) response should be nil")
+        XCTAssertNotNil(emptyResponse, "\(CacheControl.empty) response should not be nil")
+        
+        XCTAssertNotNil(expiredAlreadyResponse, "\(CacheControl.expireAlread) response should not be nil")
+        XCTAssertNotNil(expireNextDayResponse, "\(CacheControl.expireNextDay) response should not be nil")
         
         /*
          public: 这个指令允许响应被任何缓存（包括共享缓存和私有缓存）存储。因此，public 指令的响应通常会被缓存。
@@ -234,6 +245,8 @@ final class CacheTestCase: BaseTestCase {
         executeTest(cachePolicy: cachePolicy, cacheControl: .noCache, shouldReturnCachedResponse: false)
         executeTest(cachePolicy: cachePolicy, cacheControl: .noStore, shouldReturnCachedResponse: false)
         executeTest(cachePolicy: cachePolicy, cacheControl: .empty, shouldReturnCachedResponse: false)
+        executeTest(cachePolicy: cachePolicy, cacheControl: .expireAlread, shouldReturnCachedResponse: false)
+        executeTest(cachePolicy: cachePolicy, cacheControl: .expireNextDay, shouldReturnCachedResponse: true)
         /*
          在您的测试用例中，使用的 URLRequest.CachePolicy 是 .useProtocolCachePolicy。这个缓存策略指示 URLSession 遵循 HTTP 协议的缓存控制头（如 Cache-Control 和 Expires）来决定是否使用缓存。这意味着缓存的使用将基于服务器返回的响应头。让我们分析一下您的测试用例：
 
@@ -257,6 +270,8 @@ final class CacheTestCase: BaseTestCase {
         executeTest(cachePolicy: cachePolicy, cacheControl: .noCache, shouldReturnCachedResponse: false)
         executeTest(cachePolicy: cachePolicy, cacheControl: .noStore, shouldReturnCachedResponse: false)
         executeTest(cachePolicy: cachePolicy, cacheControl: .empty, shouldReturnCachedResponse: false)
+        executeTest(cachePolicy: cachePolicy, cacheControl: .expireAlread, shouldReturnCachedResponse: false)
+        executeTest(cachePolicy: cachePolicy, cacheControl: .expireNextDay, shouldReturnCachedResponse: false)
     }
     
     func testUseLocalCacheDataIfExistsOtherwiseLoadFromNetworkPolicy() {
@@ -270,6 +285,8 @@ final class CacheTestCase: BaseTestCase {
         executeTest(cachePolicy: cachePolicy, cacheControl: .noCache, shouldReturnCachedResponse: true)
         executeTest(cachePolicy: cachePolicy, cacheControl: .noStore, shouldReturnCachedResponse: false)
         executeTest(cachePolicy: cachePolicy, cacheControl: .empty, shouldReturnCachedResponse: true)
+        executeTest(cachePolicy: cachePolicy, cacheControl: .expireAlread, shouldReturnCachedResponse: true)
+        executeTest(cachePolicy: cachePolicy, cacheControl: .expireNextDay, shouldReturnCachedResponse: true)
     }
     
     func testUseLocalCacheDataAndDontLoadFromNetworkPolicy() {
@@ -284,7 +301,8 @@ final class CacheTestCase: BaseTestCase {
         executeTest(cachePolicy: cachePolicy, cacheControl: .maxAgeExpired, shouldReturnCachedResponse: true)
         executeTest(cachePolicy: cachePolicy, cacheControl: .noCache, shouldReturnCachedResponse: true)
         executeTest(cachePolicy: cachePolicy, cacheControl: .empty, shouldReturnCachedResponse: true)
-        
+        executeTest(cachePolicy: cachePolicy, cacheControl: .expireAlread, shouldReturnCachedResponse: true)
+        executeTest(cachePolicy: cachePolicy, cacheControl: .expireNextDay, shouldReturnCachedResponse: true)
         // Given
         let requestDidFinish = expectation(description: "don't load from network request finished")
         var response: HTTPURLResponse?

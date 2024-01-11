@@ -25,7 +25,7 @@ struct Endpoint {
     }
 
     enum Host: String {
-        case localhost = "10.234.52.38"
+        case localhost = "10.236.212.137"
         case httpBin = "httpbin.org"
 
         func port(for scheme: Scheme) -> Int {
