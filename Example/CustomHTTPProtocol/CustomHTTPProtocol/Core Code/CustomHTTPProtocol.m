@@ -529,6 +529,7 @@ static NSString * kOurRecursiveRequestFlagProperty = @"com.apple.dts.CustomHTTPP
 
 #pragma mark * NSURLSession delegate callbacks
 
+// 重定向.
 - (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task willPerformHTTPRedirection:(NSHTTPURLResponse *)response newRequest:(NSURLRequest *)newRequest completionHandler:(void (^)(NSURLRequest *))completionHandler
 {
     NSMutableURLRequest *    redirectRequest;
@@ -558,8 +559,10 @@ static NSString * kOurRecursiveRequestFlagProperty = @"com.apple.dts.CustomHTTPP
     [[self class] removePropertyForKey:kOurRecursiveRequestFlagProperty inRequest:redirectRequest];
     
     // Tell the client about the redirect.
-    
+    // 对于重定向的处理, 应该是告诉 self client 已经要被重定向了
     [[self client] URLProtocol:self wasRedirectedToRequest:redirectRequest redirectResponse:response];
+    // 然后, 取消当前的 task.
+    // 感觉有问题, cancel 会引起错误吧.
     
     // Stop our load.  The CFNetwork infrastructure will create a new NSURLProtocol instance to run
     // the load of the redirect.
@@ -568,10 +571,10 @@ static NSString * kOurRecursiveRequestFlagProperty = @"com.apple.dts.CustomHTTPP
     // which specificallys traps and ignores the error.
     
     [self.task cancel];
-    
     [[self client] URLProtocol:self didFailWithError:[NSError errorWithDomain:NSCocoaErrorDomain code:NSUserCancelledError userInfo:nil]];
 }
 
+// 从这里来看, 在遇到 completionHandler 的需求的时候, 还是交给 App 内部直接处理. 没有办法通过 client 将这个向外传.
 - (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didReceiveChallenge:(NSURLAuthenticationChallenge *)challenge completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition, NSURLCredential *))completionHandler
 {
     BOOL        result;
@@ -602,6 +605,7 @@ static NSString * kOurRecursiveRequestFlagProperty = @"com.apple.dts.CustomHTTPP
         
         [self didReceiveAuthenticationChallenge:challenge completionHandler:completionHandler];
     } else {
+        // 只处理证书验证的情况.
         [[self class] customHTTPProtocol:self logWithFormat:@"cannot authenticate %@", [[challenge protectionSpace] authenticationMethod]];
         
         completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, nil);
@@ -635,8 +639,11 @@ static NSString * kOurRecursiveRequestFlagProperty = @"com.apple.dts.CustomHTTPP
     
     [[self class] customHTTPProtocol:self logWithFormat:@"received response %zd / %@ with cache storage policy %zu", (ssize_t) statusCode, [response URL], (size_t) cacheStoragePolicy];
     
+    // cacheStoragePolicy 只是影响到了, URLCache 应该怎么存.
+    // 要不要存这件事, 还是通过 Http 的内部进行的判断.
     [[self client] URLProtocol:self didReceiveResponse:response cacheStoragePolicy:cacheStoragePolicy];
     
+    // 统一的还是 allow. 但是这里的 cacheStoragePolicy 应该是专门处理一下.
     completionHandler(NSURLSessionResponseAllow);
 }
 
@@ -652,9 +659,11 @@ static NSString * kOurRecursiveRequestFlagProperty = @"com.apple.dts.CustomHTTPP
     
     [[self class] customHTTPProtocol:self logWithFormat:@"received %zu bytes of data", (size_t) [data length]];
     
+    // 直接转发给外界就可以了.
     [[self client] URLProtocol:self didLoadData:data];
 }
 
+// 直接就用传递过来的进行存储就可以了. 
 - (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask willCacheResponse:(NSCachedURLResponse *)proposedResponse completionHandler:(void (^)(NSCachedURLResponse *))completionHandler
 {
 #pragma unused(session)

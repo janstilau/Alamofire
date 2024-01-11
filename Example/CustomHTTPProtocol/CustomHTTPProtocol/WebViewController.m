@@ -235,6 +235,7 @@ static NSString * kAnchorInstallSchemePrefix = @"x-anchor-install-";
 /*! Tells the web view to load "root.html", our initial start page.
  */
 
+// 这里是在加载, 本地的一个 Web 页面. 
 - (void)displaySites
 {
     NSURL *     rootURL;

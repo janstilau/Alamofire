@@ -2,6 +2,7 @@
 
 @interface QNSURLSessionDemuxTaskInfo : NSObject
 
+// 不知道为什么要有线程和 Runloop 的调度.
 - (instancetype)initWithTask:(NSURLSessionDataTask *)task delegate:(id<NSURLSessionDataDelegate>)delegate modes:(NSArray *)modes;
 
 @property (atomic, strong, readonly ) NSURLSessionDataTask *        task;
@@ -84,13 +85,13 @@
             configuration = [NSURLSessionConfiguration defaultSessionConfiguration];
         }
         self->_configuration = [configuration copy];
-
+        
         self->_taskInfoByTaskID = [[NSMutableDictionary alloc] init];
-
+        
         self->_sessionDelegateQueue = [[NSOperationQueue alloc] init];
         [self->_sessionDelegateQueue setMaxConcurrentOperationCount:1];
         [self->_sessionDelegateQueue setName:@"QNSURLSessionDemux"];
-
+        
         self->_session = [NSURLSession sessionWithConfiguration:self->_configuration delegate:self delegateQueue:self->_sessionDelegateQueue];
         self->_session.sessionDescription = @"QNSURLSessionDemux";
     }
@@ -101,7 +102,7 @@
 {
     NSURLSessionDataTask *          task;
     QNSURLSessionDemuxTaskInfo *    taskInfo;
-
+    
     assert(request != nil);
     assert(delegate != nil);
     // modes may be nil
@@ -135,6 +136,8 @@
     return result;
 }
 
+
+// 所有的方法, 在这里进行了统一的转发.
 - (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task willPerformHTTPRedirection:(NSHTTPURLResponse *)response newRequest:(NSURLRequest *)newRequest completionHandler:(void (^)(NSURLRequest *))completionHandler
 {
     QNSURLSessionDemuxTaskInfo *    taskInfo;
@@ -194,13 +197,13 @@
     QNSURLSessionDemuxTaskInfo *    taskInfo;
     
     taskInfo = [self taskInfoForTask:task];
-
+    
     // This is our last delegate callback so we remove our task info record.
     
     @synchronized (self) {
         [self.taskInfoByTaskID removeObjectForKey:@(taskInfo.task.taskIdentifier)];
     }
-
+    
     // Call the delegate if required.  In that case we invalidate the task info on the client thread 
     // after calling the delegate, otherwise the client thread side of the -performBlock: code can 
     // find itself with an invalidated task info.

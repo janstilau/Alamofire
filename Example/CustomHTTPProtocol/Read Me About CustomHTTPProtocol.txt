@@ -22,6 +22,19 @@ o supporting custom URL schemes for HTTP Live Streaming encryption keys
 
 CustomHTTPProtocol requires iOS 7 or later, although the NSURLProtocol subclass technique should work on any version of iOS and, for that matter, on Mac OS X 10.5 and later.
 
+CustomHTTPProtocol演示了如何使用NSURLProtocol子类拦截由高级子系统发出的HTTP/HTTPS请求，而该子系统本身并未公开其网络连接。在这种特定情况下，它拦截了由UIWebView发出的请求，以支持自定义服务器信任评估。您可以使用这种技术解决各种问题，包括：
+
+在UIWebView中实现自定义HTTPS服务器信任评估（例如访问具有自签名证书的服务器），正如此特定示例代码所示。
+在UIWebView中允许选择HTTPS客户端身份。
+在UIWebView中支持HTTP（RFC 2617）身份验证。
+在使用NSURL{Session,Connection}的任何子系统中调试问题，特别是在它使用HTTPS的情况下，因此无法进行数据包跟踪。
+此外，此示例所展示的核心技术（NSURLProtocol子类）可以用于解决其他问题，包括：
+
+强制UIWebView通过自定义代理运行（在用于递归请求的NSURLSession中很容易设置）。
+在某些非标准传输方案上运行HTTP请求（例如通过External Accessory流对运行HTTP的情况）。
+支持HTTP Live Streaming加密密钥的自定义URL方案。
+CustomHTTPProtocol要求iOS 7或更高版本，尽管NSURLProtocol子类技术应该适用于任何iOS版本，以及Mac OS X 10.5及更高版本
+
 IMPORTANT: Before using the technique shown by this sample, review the "Compatibility Notes" section, below.
 
 Packing List
@@ -57,6 +70,25 @@ o Core Code -- The code that actually implements the NSURLProtocol subclass.  Wi
 - CanonicalRequest.{h,m} -- A module that contains a single function, CanonicalRequestForRequest, which implements some standard functionality.  See the "Caveats" section (below) for more information about this.
 
 - CacheStoragePolicy.{h,m} -- A module that contains a single function, CacheStoragePolicyForRequestAndResponse, which implements some standard functionality.  See the "Compatibility Notes" section (below) for more information about this.
+
+该示例包括三个顶层项目：
+
+Read Me About CustomHTTPProtocol.txt -- 此文档。
+CustomHTTPProtocol.xcodeproj -- 用于该示例的Xcode项目。
+CustomHTTPProtocol -- 包含所有其他内容的目录。
+在"CustomHTTPProtocol"目录中，您会找到：
+
+Info.plist、main.m、Main.storyboard、Icons、Default Images -- 在任何iOS应用中可能找到的标准内容。
+AppDelegate.{h,m} -- 应用程序代理类；这是一个普通的应用程序代理，具有一些小的添加，以a)启用NSURLProtocol子类，b)支持该子类的日志记录，c)实际执行自定义服务器信任评估（通过NSURLProtocol子类的委托回调）。
+ThreadInfo.{h,m} -- 应用程序代理日志代码使用的辅助类。
+WebViewController.{h,m} -- 主视图控制器，运行Web视图并管理下载锚定证书的过程。
+WebViewControllerHTML -- 由上述使用的一些HTML文件。
+CredentialsManager.{h,m} -- 一个维护应用程序信任锚点列表的单例模型对象。
+Core Code -- 实际实现NSURLProtocol子类的代码。在此目录中，您将找到四个模块：
+CustomHTTPProtocol.{h,m} -- 实际的NSURLProtocol子类。
+QNSURLSessionDemux.{h,m} -- 由CustomHTTPProtocol类的实例使用的辅助类，用于复用NSURLSession委托事件。
+CanonicalRequest.{h,m} -- 包含一个函数的模块，即CanonicalRequestForRequest，该函数实现了一些标准功能。有关此内容的更多信息，请参阅下面的"注意事项"部分。
+CacheStoragePolicy.{h,m} -- 包含一个函数的模块，即CacheStoragePolicyForRequestAndResponse，该函数实现了一些标准功能。有关此内容的更多信息，请参阅下面的"兼容性注意事项"部分。
 
 Using the Sample
 ----------------
@@ -111,6 +143,30 @@ It's not possible to accurately implement an HTTP/HTTPS NSURLProtocol subclass w
 o URL canonicalization -- The code in the CanonicalRequestForRequest function is complex, and there's certainly some scope for future compatibility problems.
 
 o cache storage policy -- The code in the CacheStoragePolicyForRequestAndResponse function isn't nearly as complex as the URL canonicalization code, but it is another example of reimplementing system functionality.
+
+该示例假定UIWebView以允许NSURLProtocol子类影响其使用方式的方式使用NSURLConnection。目前确实是这样，但不能保证将来会一直如此。当然，在iOS中存在一些子系统，这种情况并不适用（例如，电影播放子系统）。
+
+警告：如果您使用NSURLProtocol子类自定义UIWebView的行为，您应该提交一个bug报告，描述您的需求，并要求通过UIWebView委托提供适当的自定义点。
+
+https://developer.apple.com/bugreporter/
+
+同样，如果您在iOS中的其他子系统中使用此技术，您应该提交一个bug报告，请求增强那些子系统以支持您需要的自定义点。
+
+如果您计划为电影播放使用自定义NSURLProtocol子类，请观看WWDC 2011会话408“HTTP Live Streaming Update”，了解有关NSURLProtocol子类与媒体子系统交互的重要信息。
+
+https://developer.apple.com/videos/wwdc/2011/
+
+请注意，如果一个子系统使用NSURLSession，则您的自定义NSURLProtocol子类将仅看到在共享会话（+[NSURLSession sharedSession]）中发出的请求。为了使协议在其他会话中工作，它必须在用于创建会话的配置中列出（通过NSURLSessionConfiguration.protocolClasses属性）。
+
+NSURLProtocol子类可能会影响您进程中使用NSURL{Session,Connection}的任何代码片段，因此代表着实际的兼容性风险。为了最小化潜在问题：
+
+限制您的范围 -- 防止问题的最简单方法是限制您处理的URL类型。为此，实现+canInitWithRequest:以拒绝处理除了您感兴趣的特定请求之外的所有请求。例如，虽然此示例中的+canInitWithRequest:接受HTTP和HTTPS请求，但仅接受HTTPS请求就足够了，从而允许HTTP请求由默认的协议实现处理。
+内存 -- 谨防使用过多内存，特别是在iOS上。
+线程 -- 确保遵循下面描述的线程规则。
+在不重新实现一些系统功能的情况下，准确实现HTTP/HTTPS NSURLProtocol子类是不可能的。每当重新实现系统功能时，都存在系统功能可能发生变化，使得您的重新实现无法适应的风险。这里存在两个主要关注点：
+
+URL规范化 -- CanonicalRequestForRequest 函数中的代码很复杂，未来可能存在一些兼容性问题的可能性。
+缓存存储策略 -- CacheStoragePolicyForRequestAndResponse 函数中的代码不像URL规范化代码那么复杂，但它是重新实现系统功能的另一个例子。
 
 Threading Notes
 ---------------
@@ -193,21 +249,62 @@ o An extension of this approach is to implement a small loopback web server that
 
 o NSHTTPURLResponse supports the NSCoding protocol.  If your NSURLProtocol only needs to return a small number of fixed responses, you could create those responses via NSURL{Session,Connection} at build time, archive them, and then unarchive them at run time.
 
-Credits and Version History
----------------------------
-If you find any problems with this sample, please file a bug against it.
+线程注意事项
 
-<https://developer.apple.com/bugreporter/>
+正确实现NSURLProtocol子类可能比较棘手，其中最重要的问题与线程有关。NSURLProtocol子类预期实现的方法可分为两组：
 
-1.0d1..8 (2011..2013) shipped to a limited number of developers on a one-to-one basis.
+o 任何线程 -- 这些方法可以从任何线程调用，必须完全线程安全：
 
-1.0 (Aug 2013) was the first shipping version.
+-initWithRequest:cachedResponse:client:
+-dealloc
++canInitWithRequest:
++canonicalRequestForRequest:
++requestIsCacheEquivalent:toRequest:
 
-1.1 (Jul 2014) is an update that changes the protocol to use NSURLSession for its recursive requests.  This works around a deadlock issue <rdar://problem/17342579> and makes the code more future proof.  There were also numerous other minor changes.
+o 客户端线程 -- 这些方法始终由客户端线程调用：
 
-Share and Enjoy
+-startLoading
+-stopLoading
+客户端线程的确切标识未指定，但可以确保：
 
-Apple Developer Technical Support
-Core OS/Hardware
+o -startLoading由客户端线程调用
 
-28 Jul 2014
+o -stopLoading将由相同的客户端线程调用
+
+o -stopLoading将在调用-dealloc之前调用
+
+o 客户端线程将运行其运行循环
+
+此外，NSURLProtocol子类预期应该从客户端线程调用NSURLProtocolClient协议的各种方法，包括以下所有方法：
+
+-URLProtocol:wasRedirectedToRequest:redirectResponse:
+-URLProtocol:didReceiveResponse:cacheStoragePolicy:
+-URLProtocol:didLoadData:
+-URLProtocolDidFinishLoading:
+-URLProtocol:didFailWithError:
+-URLProtocol:didReceiveAuthenticationChallenge:
+-URLProtocol:didCancelAuthenticationChallenge:
+NSURLProtocol子类必须按照预期的顺序调用客户端回调。这可以分为三个阶段：
+
+预响应 -- 在初始阶段，NSURLProtocol可以进行任意数量的-URLProtocol:wasRedirectedToRequest:redirectResponse:和-URLProtocol:didReceiveAuthenticationChallenge:回调。
+响应 -- 然后，它必须调用-URLProtocol:didReceiveResponse:cacheStoragePolicy:来指示确切响应的到达。
+响应后 -- 在收到响应后，它可以进行任意数量的-URLProtocol:didLoadData:回调，然后是-URLProtocolDidFinishLoading:回调。
+-URLProtocol:didFailWithError:回调可以在任何时候进行（尽管请注意以下一点）。
+
+NSURLProtocol子类在同一时间只能向客户端发送一个身份验证挑战。在调用-URLProtocol:didReceiveAuthenticationChallenge:之后，必须等待客户端解决挑战，然后才能调用除-URLProtocol:didCancelAuthenticationChallenge:之外的任何回调。这意味着，如果在存在未解决的身份验证挑战的情况下连接失败，NSURLProtocol子类必须在调用-URLProtocol:didFailWithError:之前调用-URLProtocol:didCancelAuthenticationChallenge:。
+
+警告：NSURLProtocol子类必须异步操作。阻塞客户端线程的时间要尽量减少。例如，虽然NSURLProtocol子类将工作（如身份验证挑战）推迟到主线程是合理的，但它必须以异步方式执行。如果NSURLProtocol子类将任务传递到主线程，然后阻塞等待结果，很可能导致应用程序死锁。
+
+注意事项
+
+示例应用程序在启动到启动之间不会记住已安装的锚点。通过扩展CredentialsManager类来存储锚点将很容易实现，但出于简化考虑，我选择不这样做。
+
+NSURLProtocolClient协议未扩展以支持高级保护空间 rdar://problem/9226151。这意味着您的NSURLProtocol子类无法调用NSURLConnection委托的-connection:canAuthenticateAgainstProtectionSpace:方法。如果确实向客户端发送身份验证挑战，您只能发送标准身份验证挑战（即，其保护空间的身份验证方法为NSURLAuthenticationMethodDefault、NSURLAuthenticationMethodHTTPBasic或NSURLAuthenticationMethodHTTPDigest的挑战）。其他身份验证挑战必须由您自己处理（这通常是您首次实现自定义NSURLProtocol子类的原因）。
+
+类似地，NSURLProtocol子类无法调用NSURLConnection委托的-connection:needNewBodyStream:或-connection:didSendBodyData:totalBytesWritten:totalBytesExpectedToWrite:方法（rdar://problem/9226155 和 rdar://problem/9226157）。后者不是一个严重的问题，它只意味着您的客户端不会获得上传进度，但前者是一个真正的问题。如果您可能需要第二个请求体的副本，您将需要自己的逻辑来制作该副本，包括请求体为流的情况。
+
+最后，NSURLProtocol子类无法调用NSURLConnection委托的-connectionShouldUseCredentialStorage:或-connection:willCacheResponse:方法（rdar://problem/9226160）。在大多数情况下，这不应该是问题，但对于复杂的客户端可能会导致问题。
+
+从头开始创建NSHTTPURLResponse是棘手的。此示例通过递归调用NSURLConnection来绕过此问题，从而导致系统代表其创建NSHTTPURLResponse。如果您需要执行其他操作，请参阅下面的"创建NSHTTPURLResponse"部分。
+
+使用自定义NSURLProtocol子类可能会导致在HTTP重定向时CFNetwork泄漏 rdar://problem/10093777。为减少此泄漏的影响，请最小化NSURLProtocol子类对象的大小，并在-stopLoading而不是`-dealloc

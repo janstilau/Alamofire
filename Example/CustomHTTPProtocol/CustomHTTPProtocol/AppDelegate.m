@@ -264,6 +264,7 @@ static NSTimeInterval sAppStartTime;            // since reference date
     if (trust == NULL) {
         assert(NO);
     } else {
+        // 在这里, 使用证书进行了验证. 
         err = SecTrustSetAnchorCertificates(trust, (__bridge CFArrayRef) self.credentialsManager.trustedAnchors);
         if (err != noErr) {
             assert(NO);
