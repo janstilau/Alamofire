@@ -20,6 +20,7 @@ class ProtocolExampleViewController: UIViewController {
         return session
     }()
     lazy var mutableData = Data()
+    fileprivate var protocolName: String = ""
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -145,6 +146,7 @@ extension ProtocolExampleViewController {
         let request = URLRequest.init(url: dataURL)
         let task = self.session.dataTask(with: request)
         mutableData.removeAll()
+        protocolName = "file"
         task.resume()
     }
 }
@@ -177,6 +179,7 @@ extension ProtocolExampleViewController {
         let request = URLRequest.init(url: fileURL)
         let task = self.session.dataTask(with: request)
         mutableData.removeAll()
+        protocolName = "data"
         task.resume()
     }
 }
@@ -232,6 +235,7 @@ extension ProtocolExampleViewController {
         let request = URLRequest.init(url: dataURL)
         let task = self.session.dataTask(with: request)
         mutableData.removeAll()
+        protocolName = "self"
         task.resume()
     }
 }
@@ -244,12 +248,35 @@ extension ProtocolExampleViewController: URLSessionDelegate, URLSessionDataDeleg
     }
     
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
-        print(error)
+        if let error {
+            print("didCompleteWithError :\(error), protocol :\(protocolName)")
+        } else {
+            if protocolName == "file" {
+                if let fileContent = String.init(data: mutableData, encoding: .utf8) {
+                    print("File Content: \(fileContent)")
+                }
+            } else if ["data", "self"].contains(protocolName) {
+                if let dataContent = try? JSONSerialization.jsonObject(with: mutableData) {
+                    print("Data Content: \(dataContent)")
+                }
+            }
+        }
         
     }
     
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
         print("didReceive Data \(data.count)")
         mutableData.append(data)
+    }
+    
+    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, willCacheResponse proposedResponse: CachedURLResponse, completionHandler: @escaping (CachedURLResponse?) -> Void) {
+        print("willCacheResponse \(proposedResponse)")
+        completionHandler(proposedResponse)
+    }
+    
+    func urlSession(_ session: URLSession, task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+        print("didReceive challenge. session: \(session), task: \(task), challenge: \(challenge)")
+        let userNamePasswork = URLCredential(user: "lgq01", password: "lgq01Pwd", persistence: .permanent)
+        completionHandler(.useCredential, userNamePasswork)
     }
 }
