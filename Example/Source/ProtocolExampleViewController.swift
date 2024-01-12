@@ -102,7 +102,7 @@ class ProtocolExampleViewController: UIViewController {
 extension ProtocolExampleViewController {
     func jsonDataProtocol() {
         guard let fileURL = Bundle.main.url(forResource: "JSONExample", withExtension: "txt"),
-              let fileContents = try? String(contentsOf: fileURL) else {
+              let fileContents = try? String(contentsOf: fileURL).trimmingCharacters(in: .whitespacesAndNewlines) else {
             print("File not found or cannot be read")
             return
         }
@@ -191,7 +191,7 @@ extension ProtocolExampleViewController {
 extension ProtocolExampleViewController {
     func selfDataProtocol() {
         guard let fileURL = Bundle.main.url(forResource: "SelfJSONExample", withExtension: "txt"),
-              let fileContents = try? String(contentsOf: fileURL) else {
+              let fileContents = try? String(contentsOf: fileURL).trimmingCharacters(in: .whitespacesAndNewlines) else {
             print("File not found or cannot be read")
             return
         }
