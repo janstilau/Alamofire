@@ -31,7 +31,13 @@ app.get('/cache', (req, res) => {
     switch (cacheControl) {
         case 'public':
             setTimeout(() => {
-                res.json({ message: 'Public cache', cacheControl });
+                const ifNoneMatch = req.header('If-None-Match');
+                const currentEtag = 'ConstantEtagForPublic';
+                if (ifNoneMatch == currentEtag)  {
+                    res.status(304).end();
+                } else {
+                    res.json({ message: 'Public cache', cacheControl });
+                }
             }, 1200);
             break;
         case 'private':

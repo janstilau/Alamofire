@@ -105,13 +105,12 @@ final class CacheTestCase: BaseTestCase {
         // dispatchGroup 是这种需要等待的代码, 经常使用的工具.
         for cacheControl in CacheControl.allCases {
             dispatchGroup.enter()
-            
-            let request = startRequest(cacheControl: cacheControl,
+            let request = startRequest(isExec: false,
+                                       cacheControl: cacheControl,
                                        queue: serialQueue,
                                        completion: { _, response in
                 let timestamp = response!.headers["Date"]
                 self.respTimestamps[cacheControl] = timestamp
-                
                 dispatchGroup.leave()
             })
             
@@ -125,18 +124,30 @@ final class CacheTestCase: BaseTestCase {
     // MARK: - Request Helper Methods
     
     @discardableResult
-    private func startRequest(cacheControl: CacheControl,
+    private func startRequest(isExec: Bool = true,
+                              cacheControl: CacheControl,
                               cachePolicy: URLRequest.CachePolicy = .useProtocolCachePolicy,
                               queue: DispatchQueue = .main,
                               completion: @escaping (URLRequest?, HTTPURLResponse?) -> Void)
     -> URLRequest {
-        let urlRequest = Endpoint(path: .cache,
+        var urlRequest = Endpoint(path: .cache,
                                   timeout: 30,
                                   queryItems: [.init(name: "Cache-Control", value: cacheControl.rawValue)],
                                   cachePolicy: cachePolicy).urlRequest
+        if cacheControl == .publicControl, isExec {
+            urlRequest.headers.add(.init(name: "If-None-Match", value: "ConstantEtagForPublic"))
+        }
         let request = manager.request(urlRequest)
         
         request.response(queue: queue) { response in
+            print("-------------------------------------------")
+            print("request is \(response.request)")
+            print("request header is \(response.request?.headers)")
+            print("response is \(response.response)")
+            
+            if let respData = response.data, let respStr = String.init(data: respData, encoding: .utf8) {
+                print("Resp data is \(respStr)")
+            }
             completion(response.request, response.response)
         }
         
@@ -169,10 +180,6 @@ final class CacheTestCase: BaseTestCase {
         guard let cachedResponseTimestamp = respTimestamps[cacheControl] else {
             XCTFail("cached response timestamp should not be nil")
             return
-        }
-        
-        if cacheControl == .expireNextDay {
-            print("expireNextDay")
         }
         if let response = response, let timestamp = response.headers["Date"] {
             if isCachedResponse {
@@ -247,9 +254,9 @@ final class CacheTestCase: BaseTestCase {
         executeTest(cachePolicy: cachePolicy, cacheControl: .empty, shouldReturnCachedResponse: false)
         executeTest(cachePolicy: cachePolicy, cacheControl: .expireAlread, shouldReturnCachedResponse: false)
         executeTest(cachePolicy: cachePolicy, cacheControl: .expireNextDay, shouldReturnCachedResponse: true)
+        
         /*
          在您的测试用例中，使用的 URLRequest.CachePolicy 是 .useProtocolCachePolicy。这个缓存策略指示 URLSession 遵循 HTTP 协议的缓存控制头（如 Cache-Control 和 Expires）来决定是否使用缓存。这意味着缓存的使用将基于服务器返回的响应头。让我们分析一下您的测试用例：
-
          publicControl 和 privateControl：虽然 public 和 private 缓存控制头允许响应被缓存，但它们不保证立即从缓存中获取响应。这取决于响应的其他缓存控制头，如 max-age 或 Expires。如果这些头部没有指定或指定的缓存时间已过期，那么即使是 public 或 private 响应，也可能需要从服务器重新获取。
          maxAgeNonExpired：这个指令设置了一个尚未过期的 max-age，这意味着响应应该在指定时间内从缓存中获取，而不是重新从服务器请求。
          maxAgeExpired：即使设置了 max-age，如果指定的时间已过期，缓存不应该被使用，因此需要重新从服务器获取。
