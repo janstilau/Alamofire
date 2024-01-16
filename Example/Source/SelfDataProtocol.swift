@@ -55,7 +55,7 @@ private struct _PercentDecoder: IteratorProtocol {
 }
 
 
-internal class _SelfURLProtocol: URLProtocol {
+internal class _SelfDataURLProtocol: URLProtocol {
     
     fileprivate var errorReason: String = ""
     
@@ -279,7 +279,7 @@ internal class _SelfURLProtocol: URLProtocol {
 }
 
 
-extension _SelfURLProtocol: URLAuthenticationChallengeSender {
+extension _SelfDataURLProtocol: URLAuthenticationChallengeSender {
     func use(_ credential: URLCredential, for challenge: URLAuthenticationChallenge) {
         if credential.user == "lgq01", credential.password == "lgq01Pwd" {
             print("User Credential \(credential)")

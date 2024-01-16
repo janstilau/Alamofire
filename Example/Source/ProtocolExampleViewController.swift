@@ -15,7 +15,7 @@ class ProtocolExampleViewController: UIViewController {
     
     lazy var session: URLSession = {
         var config = URLSessionConfiguration.default
-        config.protocolClasses = [_SelfURLProtocol.self]
+        config.protocolClasses = [_SelfDataURLProtocol.self, _SelfFileURLProtocol.self]
         let session = URLSession(configuration: config, delegate: self, delegateQueue: .main)
         return session
     }()
@@ -27,7 +27,8 @@ class ProtocolExampleViewController: UIViewController {
         setupScrollView()
         setupStackView()
         setupViews()
-        URLProtocol.registerClass(_SelfURLProtocol.self)
+        URLProtocol.registerClass(_SelfDataURLProtocol.self)
+        URLProtocol.registerClass(_SelfFileURLProtocol.self)
     }
     
     private func setupViews() {
@@ -49,9 +50,11 @@ class ProtocolExampleViewController: UIViewController {
         addButton(title: "SelfDataProtocolDelegate") {
             self.selfDataProtocolDelegate()
         }
-        
-        addButton(title: "DeinitTest") {
-            self.deinitTest()
+        addButton(title: "SelfFileProtocol") {
+            self.selfFileProtocol()
+        }
+        addButton(title: "SelfFileProtocolDelegate") {
+            self.selfFileProtocolDelegate()
         }
     }
     
@@ -244,35 +247,47 @@ extension ProtocolExampleViewController {
     }
 }
 
-class Dog {
-    var action: (() -> ())?
-    func bark() {
-        print("wang")
-    }
-    func doAction() {
-        action?()
-    }
-}
-
-class Person {
-    var name = "PersonName"
-    lazy var dog: Dog = {
-        let value = Dog()
-        value.action = { [weak self] in
-            print(self?.name)
-        }
-        return value
-    }()
-    
-    deinit {
-        dog.bark()
-        dog.doAction()
-    }
-}
-
 extension ProtocolExampleViewController {
-    func deinitTest() {
-        let personValue = Person()
+    func selfFileProtocol() {
+        guard let selfFileUrl = URL(string: "selffile://localbundle.com/docs/index.html") else {
+            print("Invalid data URL")
+            return
+        }
+        
+        let task = URLSession.shared.dataTask(with: selfFileUrl) { data, response, error in
+            if let error = error {
+                print("Error fetching data: \(error)")
+                return
+            }
+            
+            if let data = data {
+                do {
+                    if let htmlStr = String.init(data: data, encoding: .utf8) {
+                        // 成功解析 JSON
+                        print("Html fetched: \(htmlStr)")
+                    } else {
+                        print("Invalid String")
+                    }
+                } catch {
+                    print("Html parsing error: \(error)")
+                }
+            }
+            
+        }
+        task.resume()
+    }
+    
+    func selfFileProtocolDelegate() {
+        guard let selfFileUrl = URL(string: "selffile://localbundle.com/docs/index.html") else {
+            print("Invalid data URL")
+            return
+        }
+        
+        let request = URLRequest.init(url: selfFileUrl)
+        let task = self.session.dataTask(with: request)
+        mutableData.removeAll()
+        protocolName = "selffile"
+        task.resume()
     }
 }
 
@@ -299,6 +314,10 @@ extension ProtocolExampleViewController: URLSessionDelegate, URLSessionDataDeleg
             } else if ["data", "self"].contains(protocolName) {
                 if let dataContent = try? JSONSerialization.jsonObject(with: mutableData) {
                     print("Data Content: \(dataContent)")
+                }
+            } else if protocolName == "selffile" {
+                if let fileContent = String.init(data: mutableData, encoding: .utf8) {
+                    print("File Content: \(fileContent)")
                 }
             }
         }
