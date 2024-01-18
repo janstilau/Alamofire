@@ -34,6 +34,7 @@ class _SelfFileURLProtocol: URLProtocol {
         }
     }
 
+    // 清理工作, 在发送完成, 失败, 取消的时候, 会由上层主动地进行调用.
     override func stopLoading() {
         // 可以在这里进行一些清理工作
         timer?.invalidate()

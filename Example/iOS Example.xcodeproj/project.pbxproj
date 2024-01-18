@@ -15,6 +15,7 @@
 		06622AC72B5667D0006633AE /* docs in Resources */ = {isa = PBXBuildFile; fileRef = 06622AC52B5667D0006633AE /* docs */; };
 		06622AC92B566807006633AE /* WebViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06622AC82B566807006633AE /* WebViewController.swift */; };
 		06622ACB2B566AE3006633AE /* SelfFileProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06622ACA2B566AE3006633AE /* SelfFileProtocol.swift */; };
+		06622ACD2B5673E1006633AE /* ProtocolExampleViewController+SessionDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06622ACC2B5673E1006633AE /* ProtocolExampleViewController+SessionDelegate.swift */; };
 		3129D57622F230AE009C145F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 3129D57422F230AE009C145F /* LaunchScreen.storyboard */; };
 		31E476821C55DE6D00968569 /* Alamofire.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 31E4766A1C55DD5900968569 /* Alamofire.framework */; };
 		31E476831C55DE6D00968569 /* Alamofire.framework in Copy Frameworks */ = {isa = PBXBuildFile; fileRef = 31E4766A1C55DD5900968569 /* Alamofire.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
@@ -73,6 +74,7 @@
 		06622AC52B5667D0006633AE /* docs */ = {isa = PBXFileReference; lastKnownFileType = folder; name = docs; path = ../../docs; sourceTree = "<group>"; };
 		06622AC82B566807006633AE /* WebViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebViewController.swift; sourceTree = "<group>"; };
 		06622ACA2B566AE3006633AE /* SelfFileProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfFileProtocol.swift; sourceTree = "<group>"; };
+		06622ACC2B5673E1006633AE /* ProtocolExampleViewController+SessionDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProtocolExampleViewController+SessionDelegate.swift"; sourceTree = "<group>"; };
 		3129D57522F230AE009C145F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Resources/Base.lproj/LaunchScreen.storyboard; sourceTree = SOURCE_ROOT; };
 		31E4765F1C55DD5900968569 /* Alamofire.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = Alamofire.xcodeproj; path = ../Alamofire.xcodeproj; sourceTree = "<group>"; };
 		4C6D2C7D1C67EFE100846168 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = Source/AppDelegate.swift; sourceTree = SOURCE_ROOT; };
@@ -142,6 +144,7 @@
 				4C6D2C7E1C67EFE100846168 /* DetailViewController.swift */,
 				4C6D2C7F1C67EFE100846168 /* MasterViewController.swift */,
 				06557D1C2B4EEB8400232944 /* ProtocolExampleViewController.swift */,
+				06622ACC2B5673E1006633AE /* ProtocolExampleViewController+SessionDelegate.swift */,
 				06622ACA2B566AE3006633AE /* SelfFileProtocol.swift */,
 				06557D242B4EF9DD00232944 /* SelfDataProtocol.swift */,
 				06557D212B4EF11300232944 /* Util.swift */,
@@ -149,6 +152,7 @@
 				06557D262B4EFA7B00232944 /* SelfJSONExample.txt */,
 				F8111E0819A951050040E7D1 /* Supporting Files */,
 				06557D1F2B4EEE8300232944 /* JSONExample.txt */,
+				06557D232B4EF4BC00232944 /* JSON.h */,
 				06622AC82B566807006633AE /* WebViewController.swift */,
 			);
 			path = Source;
@@ -160,7 +164,6 @@
 				4C6D2C8D1C67EFEC00846168 /* Info.plist */,
 				4C6D2C8C1C67EFEC00846168 /* Images.xcassets */,
 				4C6D2C951C67F03B00846168 /* Base.lproj */,
-				06557D232B4EF4BC00232944 /* JSON.h */,
 			);
 			name = "Supporting Files";
 			sourceTree = "<group>";
@@ -270,6 +273,7 @@
 				06557D222B4EF11300232944 /* Util.swift in Sources */,
 				06557D252B4EF9DD00232944 /* SelfDataProtocol.swift in Sources */,
 				06622AC92B566807006633AE /* WebViewController.swift in Sources */,
+				06622ACD2B5673E1006633AE /* ProtocolExampleViewController+SessionDelegate.swift in Sources */,
 				06622ACB2B566AE3006633AE /* SelfFileProtocol.swift in Sources */,
 				4C6D2C811C67EFE100846168 /* DetailViewController.swift in Sources */,
 				06557D1D2B4EEB8400232944 /* ProtocolExampleViewController.swift in Sources */,
