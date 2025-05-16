@@ -1,27 +1,3 @@
-//
-//  Request.swift
-//
-//  Copyright (c) 2014-2024 Alamofire Software Foundation (http://alamofire.org/)
-//
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
-//
-
 import Foundation
 
 /// `Request` is the common superclass of all Alamofire request types and provides common state, delegate, and callback
@@ -31,6 +7,7 @@ public class Request: @unchecked Sendable {
     /// `cancel()` on the `Request`.
     public enum State {
         /// Initial state of the `Request`.
+        // initialized, 没有太大价值, 就是一个判断的标准.
         case initialized
         /// `State` set when `resume()` is called. Any tasks created for the `Request` will have `resume()` called on
         /// them in this state.
@@ -69,6 +46,7 @@ public class Request: @unchecked Sendable {
     public let id: UUID
     /// The serial queue for all internal async actions.
     public let underlyingQueue: DispatchQueue
+    // 所有的使用 Protocol 做抽象的, 都使用了 Any
     /// The queue used for all serialization actions. By default it's a serial queue that targets `underlyingQueue`.
     public let serializationQueue: DispatchQueue
     /// `EventMonitor` used for event callbacks.
@@ -125,8 +103,13 @@ public class Request: @unchecked Sendable {
     }
 
     /// Protected `MutableState` value that provides thread-safe access to state values.
+    // Protected 这样写, 其实就是每个属性有着单独的一把锁.
+    // 之前就有过这种想法, 就是一个类里面只有一把锁, 那么所有的属性修改, 都要用这把锁, 这其实会降低效率.
+    // 每个属性自己单独一把锁, 就可以解决这个问题. 使用泛型, 或者 propertyWrapper, 也让代码可以更加的简练.
     let mutableState = Protected(MutableState())
 
+    // 相关的状态, 给了给外界使用,专门做了对应属性的定义.
+    // 这里是使用到了 subscript<Property>(dynamicMember keyPath: KeyPath<Value, Property>) -> Property { 这个技术.
     /// `State` of the `Request`.
     public var state: State { mutableState.state }
     /// Returns whether `state` is `.initialized`.
@@ -145,6 +128,7 @@ public class Request: @unchecked Sendable {
     /// Closure type executed when monitoring the upload or download progress of a request.
     public typealias ProgressHandler = @Sendable (_ progress: Progress) -> Void
 
+    // 所有的数据, 都存储到了 mutableState 里面, 但是要给外界一个快速使用的方式.
     /// `Progress` of the upload of the body of the executed `URLRequest`. Reset to `0` if the `Request` is retried.
     public let uploadProgress = Progress(totalUnitCount: 0)
     /// `Progress` of the download of any response data. Reset to `0` if the `Request` is retried.

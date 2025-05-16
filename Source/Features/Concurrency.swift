@@ -1,27 +1,3 @@
-//
-//  Concurrency.swift
-//
-//  Copyright (c) 2021 Alamofire Software Foundation (http://alamofire.org/)
-//
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
-//
-
 #if canImport(_Concurrency)
 
 import Foundation
@@ -42,7 +18,7 @@ extension Request {
             }
         }
     }
-
+    
     /// Creates a `StreamOf<Progress>` for the instance's download progress.
     ///
     /// - Parameter bufferingPolicy: `BufferingPolicy` that determines the stream's buffering behavior.`.unbounded` by default.
@@ -55,7 +31,7 @@ extension Request {
             }
         }
     }
-
+    
     /// Creates a `StreamOf<URLRequest>` for the `URLRequest`s produced for the instance.
     ///
     /// - Parameter bufferingPolicy: `BufferingPolicy` that determines the stream's buffering behavior.`.unbounded` by default.
@@ -68,7 +44,7 @@ extension Request {
             }
         }
     }
-
+    
     /// Creates a `StreamOf<URLSessionTask>` for the `URLSessionTask`s produced for the instance.
     ///
     /// - Parameter bufferingPolicy: `BufferingPolicy` that determines the stream's buffering behavior.`.unbounded` by default.
@@ -81,7 +57,7 @@ extension Request {
             }
         }
     }
-
+    
     /// Creates a `StreamOf<String>` for the cURL descriptions produced for the instance.
     ///
     /// - Parameter bufferingPolicy: `BufferingPolicy` that determines the stream's buffering behavior.`.unbounded` by default.
@@ -94,7 +70,7 @@ extension Request {
             }
         }
     }
-
+    
     fileprivate func stream<T>(of type: T.Type = T.self,
                                bufferingPolicy: StreamOf<T>.BufferingPolicy = .unbounded,
                                yielder: @escaping (StreamOf<T>.Continuation) -> Void) -> StreamOf<T> {
@@ -127,39 +103,39 @@ public struct DataTask<Value>: Sendable where Value: Sendable {
             }
         }
     }
-
+    
     /// `Result` of any response serialization performed for the `response`.
     public var result: Result<Value, AFError> {
         get async { await response.result }
     }
-
+    
     /// `Value` returned by the `response`.
     public var value: Value {
         get async throws {
             try await result.get()
         }
     }
-
+    
     private let request: DataRequest
     private let task: Task<DataResponse<Value, AFError>, Never>
     private let shouldAutomaticallyCancel: Bool
-
+    
     fileprivate init(request: DataRequest, task: Task<DataResponse<Value, AFError>, Never>, shouldAutomaticallyCancel: Bool) {
         self.request = request
         self.task = task
         self.shouldAutomaticallyCancel = shouldAutomaticallyCancel
     }
-
+    
     /// Cancel the underlying `DataRequest` and `Task`.
     public func cancel() {
         task.cancel()
     }
-
+    
     /// Resume the underlying `DataRequest`.
     public func resume() {
         request.resume()
     }
-
+    
     /// Suspend the underlying `DataRequest`.
     public func suspend() {
         request.suspend()
@@ -180,7 +156,7 @@ extension DataRequest {
             }
         }
     }
-
+    
     /// Sets an async closure returning a `Request.ResponseDisposition`, called whenever the `DataRequest` produces an
     /// `HTTPURLResponse`.
     ///
@@ -206,10 +182,10 @@ extension DataRequest {
                 completionHandler(disposition)
             }
         }
-
+        
         return self
     }
-
+    
     /// Sets an async closure called whenever the `DataRequest` produces an `HTTPURLResponse`.
     ///
     /// - Note: Most requests will only produce a single response for each outgoing attempt (initial + retries).
@@ -227,10 +203,10 @@ extension DataRequest {
             await handler(response)
             return .allow
         }
-
+        
         return self
     }
-
+    
     /// Creates a `DataTask` to `await` a `Data` value.
     ///
     /// - Parameters:
@@ -251,7 +227,7 @@ extension DataRequest {
                                                           emptyRequestMethods: emptyRequestMethods),
                             automaticallyCancelling: shouldAutomaticallyCancel)
     }
-
+    
     /// Creates a `DataTask` to `await` serialization of a `Decodable` value.
     ///
     /// - Parameters:
@@ -278,7 +254,7 @@ extension DataRequest {
                                                                       emptyRequestMethods: emptyRequestMethods),
                             automaticallyCancelling: shouldAutomaticallyCancel)
     }
-
+    
     /// Creates a `DataTask` to `await` serialization of a `String` value.
     ///
     /// - Parameters:
@@ -305,7 +281,7 @@ extension DataRequest {
                                                             emptyRequestMethods: emptyRequestMethods),
                             automaticallyCancelling: shouldAutomaticallyCancel)
     }
-
+    
     /// Creates a `DataTask` to `await` serialization using the provided `ResponseSerializer` instance.
     ///
     /// - Parameters:
@@ -317,14 +293,14 @@ extension DataRequest {
     /// - Returns: The `DataTask`.
     public func serializingResponse<Serializer: ResponseSerializer>(using serializer: Serializer,
                                                                     automaticallyCancelling shouldAutomaticallyCancel: Bool = true)
-        -> DataTask<Serializer.SerializedObject> {
+    -> DataTask<Serializer.SerializedObject> {
         dataTask(automaticallyCancelling: shouldAutomaticallyCancel) { [self] in
             response(queue: underlyingQueue,
                      responseSerializer: serializer,
                      completionHandler: $0)
         }
     }
-
+    
     /// Creates a `DataTask` to `await` serialization using the provided `DataResponseSerializerProtocol` instance.
     ///
     /// - Parameters:
@@ -337,17 +313,17 @@ extension DataRequest {
     /// - Returns: The `DataTask`.
     public func serializingResponse<Serializer: DataResponseSerializerProtocol>(using serializer: Serializer,
                                                                                 automaticallyCancelling shouldAutomaticallyCancel: Bool = true)
-        -> DataTask<Serializer.SerializedObject> {
+    -> DataTask<Serializer.SerializedObject> {
         dataTask(automaticallyCancelling: shouldAutomaticallyCancel) { [self] in
             response(queue: underlyingQueue,
                      responseSerializer: serializer,
                      completionHandler: $0)
         }
     }
-
+    
     private func dataTask<Value>(automaticallyCancelling shouldAutomaticallyCancel: Bool,
                                  forResponse onResponse: @Sendable @escaping (@escaping @Sendable (DataResponse<Value, AFError>) -> Void) -> Void)
-        -> DataTask<Value> {
+    -> DataTask<Value> {
         let task = Task {
             await withTaskCancellationHandler {
                 await withCheckedContinuation { continuation in
@@ -359,7 +335,7 @@ extension DataRequest {
                 self.cancel()
             }
         }
-
+        
         return DataTask<Value>(request: self, task: task, shouldAutomaticallyCancel: shouldAutomaticallyCancel)
     }
 }
@@ -383,39 +359,39 @@ public struct DownloadTask<Value>: Sendable where Value: Sendable {
             }
         }
     }
-
+    
     /// `Result` of any response serialization performed for the `response`.
     public var result: Result<Value, AFError> {
         get async { await response.result }
     }
-
+    
     /// `Value` returned by the `response`.
     public var value: Value {
         get async throws {
             try await result.get()
         }
     }
-
+    
     private let task: Task<AFDownloadResponse<Value>, Never>
     private let request: DownloadRequest
     private let shouldAutomaticallyCancel: Bool
-
+    
     fileprivate init(request: DownloadRequest, task: Task<AFDownloadResponse<Value>, Never>, shouldAutomaticallyCancel: Bool) {
         self.request = request
         self.task = task
         self.shouldAutomaticallyCancel = shouldAutomaticallyCancel
     }
-
+    
     /// Cancel the underlying `DownloadRequest` and `Task`.
     public func cancel() {
         task.cancel()
     }
-
+    
     /// Resume the underlying `DownloadRequest`.
     public func resume() {
         request.resume()
     }
-
+    
     /// Suspend the underlying `DownloadRequest`.
     public func suspend() {
         request.suspend()
@@ -444,7 +420,7 @@ extension DownloadRequest {
                                                           emptyRequestMethods: emptyRequestMethods),
                             automaticallyCancelling: shouldAutomaticallyCancel)
     }
-
+    
     /// Creates a `DownloadTask` to `await` serialization of a `Decodable` value.
     ///
     /// - Note: This serializer reads the entire response into memory before parsing.
@@ -473,7 +449,7 @@ extension DownloadRequest {
                                                                       emptyRequestMethods: emptyRequestMethods),
                             automaticallyCancelling: shouldAutomaticallyCancel)
     }
-
+    
     /// Creates a `DownloadTask` to `await` serialization of the downloaded file's `URL` on disk.
     ///
     /// - Parameters:
@@ -486,7 +462,7 @@ extension DownloadRequest {
         serializingDownload(using: URLResponseSerializer(),
                             automaticallyCancelling: shouldAutomaticallyCancel)
     }
-
+    
     /// Creates a `DownloadTask` to `await` serialization of a `String` value.
     ///
     /// - Parameters:
@@ -513,7 +489,7 @@ extension DownloadRequest {
                                                             emptyRequestMethods: emptyRequestMethods),
                             automaticallyCancelling: shouldAutomaticallyCancel)
     }
-
+    
     /// Creates a `DownloadTask` to `await` serialization using the provided `ResponseSerializer` instance.
     ///
     /// - Parameters:
@@ -525,14 +501,14 @@ extension DownloadRequest {
     /// - Returns: The `DownloadTask`.
     public func serializingDownload<Serializer: ResponseSerializer>(using serializer: Serializer,
                                                                     automaticallyCancelling shouldAutomaticallyCancel: Bool = true)
-        -> DownloadTask<Serializer.SerializedObject> {
+    -> DownloadTask<Serializer.SerializedObject> {
         downloadTask(automaticallyCancelling: shouldAutomaticallyCancel) { [self] in
             response(queue: underlyingQueue,
                      responseSerializer: serializer,
                      completionHandler: $0)
         }
     }
-
+    
     /// Creates a `DownloadTask` to `await` serialization using the provided `DownloadResponseSerializerProtocol`
     /// instance.
     ///
@@ -546,17 +522,17 @@ extension DownloadRequest {
     /// - Returns: The `DownloadTask`.
     public func serializingDownload<Serializer: DownloadResponseSerializerProtocol>(using serializer: Serializer,
                                                                                     automaticallyCancelling shouldAutomaticallyCancel: Bool = true)
-        -> DownloadTask<Serializer.SerializedObject> {
+    -> DownloadTask<Serializer.SerializedObject> {
         downloadTask(automaticallyCancelling: shouldAutomaticallyCancel) { [self] in
             response(queue: underlyingQueue,
                      responseSerializer: serializer,
                      completionHandler: $0)
         }
     }
-
+    
     private func downloadTask<Value>(automaticallyCancelling shouldAutomaticallyCancel: Bool,
                                      forResponse onResponse: @Sendable @escaping (@escaping @Sendable (DownloadResponse<Value, AFError>) -> Void) -> Void)
-        -> DownloadTask<Value> {
+    -> DownloadTask<Value> {
         let task = Task {
             await withTaskCancellationHandler {
                 await withCheckedContinuation { continuation in
@@ -568,7 +544,7 @@ extension DownloadRequest {
                 self.cancel()
             }
         }
-
+        
         return DownloadTask<Value>(request: self, task: task, shouldAutomaticallyCancel: shouldAutomaticallyCancel)
     }
 }
@@ -579,13 +555,13 @@ extension DownloadRequest {
 public struct DataStreamTask: Sendable {
     // Type of created streams.
     public typealias Stream<Success, Failure: Error> = StreamOf<DataStreamRequest.Stream<Success, Failure>>
-
+    
     private let request: DataStreamRequest
-
+    
     fileprivate init(request: DataStreamRequest) {
         self.request = request
     }
-
+    
     /// Creates a `Stream` of `Data` values from the underlying `DataStreamRequest`.
     ///
     /// - Parameters:
@@ -599,7 +575,7 @@ public struct DataStreamTask: Sendable {
             request.responseStream(on: .streamCompletionQueue(forRequestID: request.id), stream: onStream)
         }
     }
-
+    
     /// Creates a `Stream` of `UTF-8` `String`s from the underlying `DataStreamRequest`.
     ///
     /// - Parameters:
@@ -612,7 +588,7 @@ public struct DataStreamTask: Sendable {
             request.responseStreamString(on: .streamCompletionQueue(forRequestID: request.id), stream: onStream)
         }
     }
-
+    
     /// Creates a `Stream` of `Decodable` values from the underlying `DataStreamRequest`.
     ///
     /// - Parameters:
@@ -625,12 +601,12 @@ public struct DataStreamTask: Sendable {
     public func streamingDecodables<T>(_ type: T.Type = T.self,
                                        automaticallyCancelling shouldAutomaticallyCancel: Bool = true,
                                        bufferingPolicy: Stream<T, AFError>.BufferingPolicy = .unbounded)
-        -> Stream<T, AFError> where T: Decodable & Sendable {
+    -> Stream<T, AFError> where T: Decodable & Sendable {
         streamingResponses(serializedUsing: DecodableStreamSerializer<T>(),
                            automaticallyCancelling: shouldAutomaticallyCancel,
                            bufferingPolicy: bufferingPolicy)
     }
-
+    
     /// Creates a `Stream` of values using the provided `DataStreamSerializer` from the underlying `DataStreamRequest`.
     ///
     /// - Parameters:
@@ -643,22 +619,22 @@ public struct DataStreamTask: Sendable {
     public func streamingResponses<Serializer: DataStreamSerializer>(serializedUsing serializer: Serializer,
                                                                      automaticallyCancelling shouldAutomaticallyCancel: Bool = true,
                                                                      bufferingPolicy: Stream<Serializer.SerializedObject, AFError>.BufferingPolicy = .unbounded)
-        -> Stream<Serializer.SerializedObject, AFError> {
+    -> Stream<Serializer.SerializedObject, AFError> {
         createStream(automaticallyCancelling: shouldAutomaticallyCancel, bufferingPolicy: bufferingPolicy) { onStream in
             request.responseStream(using: serializer,
                                    on: .streamCompletionQueue(forRequestID: request.id),
                                    stream: onStream)
         }
     }
-
+    
     private func createStream<Success, Failure: Error>(automaticallyCancelling shouldAutomaticallyCancel: Bool = true,
                                                        bufferingPolicy: Stream<Success, Failure>.BufferingPolicy = .unbounded,
                                                        forResponse onResponse: @Sendable @escaping (@escaping @Sendable (DataStreamRequest.Stream<Success, Failure>) -> Void) -> Void)
-        -> Stream<Success, Failure> {
+    -> Stream<Success, Failure> {
         StreamOf(bufferingPolicy: bufferingPolicy) {
             guard shouldAutomaticallyCancel,
                   request.isInitialized || request.isResumed || request.isSuspended else { return }
-
+            
             cancel()
         } builder: { continuation in
             onResponse { stream in
@@ -669,17 +645,17 @@ public struct DataStreamTask: Sendable {
             }
         }
     }
-
+    
     /// Cancel the underlying `DataStreamRequest`.
     public func cancel() {
         request.cancel()
     }
-
+    
     /// Resume the underlying `DataStreamRequest`.
     public func resume() {
         request.resume()
     }
-
+    
     /// Suspend the underlying `DataStreamRequest`.
     public func suspend() {
         request.suspend()
@@ -700,7 +676,7 @@ extension DataStreamRequest {
             }
         }
     }
-
+    
     /// Sets an async closure returning a `Request.ResponseDisposition`, called whenever the `DataStreamRequest`
     /// produces an `HTTPURLResponse`.
     ///
@@ -724,10 +700,10 @@ extension DataStreamRequest {
                 completionHandler(disposition)
             }
         }
-
+        
         return self
     }
-
+    
     /// Sets an async closure called whenever the `DataStreamRequest` produces an `HTTPURLResponse`.
     ///
     /// - Note: Most requests will only produce a single response for each outgoing attempt (initial + retries).
@@ -745,10 +721,10 @@ extension DataStreamRequest {
             await handler(response)
             return .allow
         }
-
+        
         return self
     }
-
+    
     /// Creates a `DataStreamTask` used to `await` streams of serialized values.
     ///
     /// - Returns: The `DataStreamTask`.
@@ -763,13 +739,13 @@ extension DataStreamRequest {
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 @_spi(WebSocket) public struct WebSocketTask: Sendable {
     private let request: WebSocketRequest
-
+    
     fileprivate init(request: WebSocketRequest) {
         self.request = request
     }
-
+    
     public typealias EventStreamOf<Success, Failure: Error> = StreamOf<WebSocketRequest.Event<Success, Failure>>
-
+    
     public func streamingMessageEvents(
         automaticallyCancelling shouldAutomaticallyCancel: Bool = true,
         bufferingPolicy: EventStreamOf<URLSessionWebSocketTask.Message, Never>.BufferingPolicy = .unbounded
@@ -780,7 +756,7 @@ extension DataStreamRequest {
             request.streamMessageEvents(on: .streamCompletionQueue(forRequestID: request.id), handler: onEvent)
         }
     }
-
+    
     public func streamingMessages(
         automaticallyCancelling shouldAutomaticallyCancel: Bool = true,
         bufferingPolicy: StreamOf<URLSessionWebSocketTask.Message>.BufferingPolicy = .unbounded
@@ -791,7 +767,7 @@ extension DataStreamRequest {
             request.streamMessageEvents(on: .streamCompletionQueue(forRequestID: request.id), handler: onEvent)
         }
     }
-
+    
     public func streamingDecodableEvents<Value: Decodable & Sendable>(
         _ type: Value.Type = Value.self,
         automaticallyCancelling shouldAutomaticallyCancel: Bool = true,
@@ -807,7 +783,7 @@ extension DataStreamRequest {
                                           handler: onEvent)
         }
     }
-
+    
     public func streamingDecodable<Value: Decodable & Sendable>(
         _ type: Value.Type = Value.self,
         automaticallyCancelling shouldAutomaticallyCancel: Bool = true,
@@ -823,7 +799,7 @@ extension DataStreamRequest {
                                           handler: onEvent)
         }
     }
-
+    
     private func createStream<Success, Value, Failure: Error>(
         automaticallyCancelling shouldAutomaticallyCancel: Bool,
         bufferingPolicy: StreamOf<Value>.BufferingPolicy,
@@ -833,21 +809,21 @@ extension DataStreamRequest {
         StreamOf(bufferingPolicy: bufferingPolicy) {
             guard shouldAutomaticallyCancel,
                   request.isInitialized || request.isResumed || request.isSuspended else { return }
-
+            
             cancel()
         } builder: { continuation in
             onResponse { event in
                 if let value = transform(event) {
                     continuation.yield(value)
                 }
-
+                
                 if case .completed = event.kind {
                     continuation.finish()
                 }
             }
         }
     }
-
+    
     /// Send a `URLSessionWebSocketTask.Message`.
     ///
     /// - Parameter message: The `Message`.
@@ -859,24 +835,24 @@ extension DataStreamRequest {
             }
         }
     }
-
+    
     /// Close the underlying `WebSocketRequest`.
     public func close(sending closeCode: URLSessionWebSocketTask.CloseCode, reason: Data? = nil) {
         request.close(sending: closeCode, reason: reason)
     }
-
+    
     /// Cancel the underlying `WebSocketRequest`.
     ///
     /// Cancellation will produce an `AFError.explicitlyCancelled` instance.
     public func cancel() {
         request.cancel()
     }
-
+    
     /// Resume the underlying `WebSocketRequest`.
     public func resume() {
         request.resume()
     }
-
+    
     /// Suspend the underlying `WebSocketRequest`.
     public func suspend() {
         request.suspend()
@@ -894,7 +870,7 @@ extension WebSocketRequest {
 extension DispatchQueue {
     fileprivate static let singleEventQueue = DispatchQueue(label: "org.alamofire.concurrencySingleEventQueue",
                                                             attributes: .concurrent)
-
+    
     fileprivate static func streamCompletionQueue(forRequestID id: UUID) -> DispatchQueue {
         DispatchQueue(label: "org.alamofire.concurrencyStreamCompletionQueue-\(id)", target: .singleEventQueue)
     }
@@ -906,11 +882,11 @@ public struct StreamOf<Element>: AsyncSequence {
     public typealias AsyncIterator = Iterator
     public typealias BufferingPolicy = AsyncStream<Element>.Continuation.BufferingPolicy
     fileprivate typealias Continuation = AsyncStream<Element>.Continuation
-
+    
     private let bufferingPolicy: BufferingPolicy
     private let onTermination: (() -> Void)?
     private let builder: (Continuation) -> Void
-
+    
     fileprivate init(bufferingPolicy: BufferingPolicy = .unbounded,
                      onTermination: (() -> Void)? = nil,
                      builder: @escaping (Continuation) -> Void) {
@@ -918,41 +894,41 @@ public struct StreamOf<Element>: AsyncSequence {
         self.onTermination = onTermination
         self.builder = builder
     }
-
+    
     public func makeAsyncIterator() -> Iterator {
         var continuation: AsyncStream<Element>.Continuation?
         let stream = AsyncStream<Element>(bufferingPolicy: bufferingPolicy) { innerContinuation in
             continuation = innerContinuation
             builder(innerContinuation)
         }
-
+        
         return Iterator(iterator: stream.makeAsyncIterator()) {
             continuation?.finish()
             onTermination?()
         }
     }
-
+    
     public struct Iterator: AsyncIteratorProtocol {
         private final class Token {
             private let onDeinit: () -> Void
-
+            
             init(onDeinit: @escaping () -> Void) {
                 self.onDeinit = onDeinit
             }
-
+            
             deinit {
                 onDeinit()
             }
         }
-
+        
         private var iterator: AsyncStream<Element>.AsyncIterator
         private let token: Token
-
+        
         init(iterator: AsyncStream<Element>.AsyncIterator, onCancellation: @escaping () -> Void) {
             self.iterator = iterator
             token = Token(onDeinit: onCancellation)
         }
-
+        
         public mutating func next() async -> Element? {
             await iterator.next()
         }
