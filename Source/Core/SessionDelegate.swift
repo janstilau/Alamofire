@@ -1,10 +1,13 @@
 import Foundation
 
 /// Class which implements the various `URLSessionDelegate` methods to connect various Alamofire features.
+// 这个类是 URLSession 的实际的 Delegate. Session 中真正的进行网络请求的触发, 然后通过 SessionStateProvider 和 Session 进行交互
+// SessionStateProvider 其实就是一层抽象, 目的就是 SessionDelegate 类和 Session 类相互隔离.
 open class SessionDelegate: NSObject, @unchecked Sendable {
     private let fileManager: FileManager
 
     weak var stateProvider: (any SessionStateProvider)?
+    
     var eventMonitor: (any EventMonitor)?
 
     /// Creates an instance from the given `FileManager`.
@@ -48,7 +51,6 @@ protocol SessionStateProvider: AnyObject, Sendable {
 extension SessionDelegate: URLSessionDelegate {
     open func urlSession(_ session: URLSession, didBecomeInvalidWithError error: (any Error)?) {
         eventMonitor?.urlSession(session, didBecomeInvalidWithError: error)
-
         stateProvider?.cancelRequestsForSessionInvalidation(with: error)
     }
 }

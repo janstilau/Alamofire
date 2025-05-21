@@ -1,36 +1,15 @@
-//
-//  DataRequest.swift
-//
-//  Copyright (c) 2014-2024 Alamofire Software Foundation (http://alamofire.org/)
-//
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
-//
-
 import Foundation
 
 /// `Request` subclass which handles in-memory `Data` download using `URLSessionDataTask`.
+// 这个类, 是专门应对 URLSessionDataTask 的.
 public class DataRequest: Request, @unchecked Sendable {
     /// `URLRequestConvertible` value used to create `URLRequest`s for this instance.
+    // 并没有丢弃原来的值, 而是存储了构建它所需要的其他的值.
     public let convertible: any URLRequestConvertible
     /// `Data` read from the server so far.
     public var data: Data? { dataMutableState.data }
 
+    // 自己相关的存储, 就直接在自己的类型里面定义就可以了.
     private struct DataMutableState {
         var data: Data?
         var httpResponseHandler: (queue: DispatchQueue,
@@ -217,7 +196,13 @@ public class DataRequest: Request, @unchecked Sendable {
     @preconcurrency
     @discardableResult
     public func response(queue: DispatchQueue = .main, completionHandler: @escaping @Sendable (AFDataResponse<Data?>) -> Void) -> Self {
+        // 这里其实有循环引用.
+        // appendResponseSerializer 的参数, 是一个 () -> () , 然后在里面直接使用 Self, 拿到 self 的各种参数直接进行解析. 
         appendResponseSerializer {
+            // 本身这个闭包, 在网络请求结束之后触发的.
+            // 在这里是完成 Data 的解析动作.
+            // 然后解析完毕之后, 又注册了 responseSerializerCompletions
+            // 在所有的 ResponseSerializer 完毕之后, 会统一的调用 responseSerializerCompletions
             // Start work that should be on the serialization queue.
             let result = AFResult<Data?>(value: self.data, error: self.error)
             // End work that should be on the serialization queue.

@@ -126,6 +126,7 @@ final class Protected<Value> {
     
     // 使用 KeyPath 的这种方式, 只能用来访问已有的属性.
     // 支持 读写
+    // 这里 Keypath 在定义的时候, 要把 Contianer 的类型传递过去. 这样在实际编码的时候, 才不会发生错误. 
     subscript<Property>(dynamicMember keyPath: WritableKeyPath<Value, Property>) -> Property {
         get { lock.around { value[keyPath: keyPath] } }
         set { lock.around { value[keyPath: keyPath] = newValue } }

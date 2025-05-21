@@ -1,31 +1,10 @@
-//
-//  URLConvertible+URLRequestConvertible.swift
-//
-//  Copyright (c) 2014-2018 Alamofire Software Foundation (http://alamofire.org/)
-//
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
-//
-
 import Foundation
 
 /// Types adopting the `URLConvertible` protocol can be used to construct `URL`s, which can then be used to construct
 /// `URLRequest`s.
+// 各种 Convertible 其实都是说, 要有一个 asType 这样的一个接口.
+// 使用这个协议, 其实是为了, 在传参的时候可以传入多种类型, 而不是单一的一种类型.
+// 这样在使用者看来, 其实就不用
 public protocol URLConvertible: Sendable {
     /// Returns a `URL` from the conforming instance or throws.
     ///

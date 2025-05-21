@@ -107,7 +107,6 @@ class BaseTestCase: XCTestCase {
 
     func stored(_ session: Session) -> Session {
         self.session = session
-
         return session
     }
 

@@ -104,6 +104,10 @@ open class Session: @unchecked Sendable {
         self.delegate = delegate
         self.rootQueue = rootQueue
         self.startRequestsImmediately = startRequestsImmediately
+        /*
+         target 允许你指定新建的 queue（队列）最终会把任务提交到哪个目标队列。
+         这意味着你可以自定义队列的调度行为，实现队列之间的层级、串行/并发控制等。
+         */
         self.requestQueue = requestQueue ?? DispatchQueue(label: "\(rootQueue.label).requestQueue", target: rootQueue)
         self.serializationQueue = serializationQueue ?? DispatchQueue(label: "\(rootQueue.label).serializationQueue", target: rootQueue)
         self.interceptor = interceptor
@@ -167,6 +171,7 @@ open class Session: @unchecked Sendable {
     ///   - eventMonitors:            实例使用的 `EventMonitor`。默认为 `[AlamofireNotifications()]`。
     public convenience init(configuration: URLSessionConfiguration = URLSessionConfiguration.af.default,
                             delegate: SessionDelegate = SessionDelegate(),
+                            // 默认 DispatchQueue 创建的都是串行队列.
                             rootQueue: DispatchQueue = DispatchQueue(label: "org.alamofire.session.rootQueue"),
                             startRequestsImmediately: Bool = true,
                             requestQueue: DispatchQueue? = nil,
@@ -178,6 +183,7 @@ open class Session: @unchecked Sendable {
                             eventMonitors: [any EventMonitor] = [AlamofireNotifications()]) {
         precondition(configuration.identifier == nil, "Alamofire does not support background URLSessionConfigurations.")
         
+         
         // Retarget the incoming rootQueue for safety, unless it's the main queue, which we know is safe.
         let serialRootQueue = (rootQueue === DispatchQueue.main) ? rootQueue : DispatchQueue(label: rootQueue.label,
                                                                                              target: rootQueue)
@@ -347,6 +353,8 @@ open class Session: @unchecked Sendable {
         return request(convertible, interceptor: interceptor)
     }
     
+    // 最终给外界暴露的, 其实是各种的 Request 对象.
+    // 这些对象是一个个的请求的任务. 可以调用自己的各个方法做属性变化.
     /// Creates a `DataRequest` from a `URLRequestConvertible` value and a `RequestInterceptor`.
     ///
     /// - Parameters:

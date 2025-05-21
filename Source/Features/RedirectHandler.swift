@@ -1,27 +1,3 @@
-//
-//  RedirectHandler.swift
-//
-//  Copyright (c) 2014-2018 Alamofire Software Foundation (http://alamofire.org/)
-//
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
-//
-
 import Foundation
 
 /// A type that handles how an HTTP redirect response from a remote server should be redirected to the new request.
@@ -39,6 +15,21 @@ public protocol RedirectHandler: Sendable {
     ///   - request:    The `URLRequest` to the new location specified by the redirect response.
     ///   - response:   The `HTTPURLResponse` containing the server's response to the original request.
     ///   - completion: The closure to execute containing the new `URLRequest`, a modified `URLRequest`, or `nil`.
+    
+    /// 一个处理远程服务器的 HTTP 重定向响应应如何重定向到新请求的类型。
+    /// 确定 HTTP 重定向响应应如何重定向到新请求。
+    ///
+    /// completion 闭包应传递三种可能的选项之一：
+    ///
+    /// 1. 由重定向指定的新请求（这是最常见的用例）。
+    /// 2. 新请求的修改版本（您可能希望将其路由到其他位置）。
+    /// 3. 一个 nil 值，拒绝重定向请求并返回重定向响应的主体。
+    ///
+    /// - Parameters:
+    /// - task: 导致重定向的 URLSessionTask。
+    /// - request: 由重定向响应指定的新位置的 URLRequest。
+    /// - response: 包含服务器对原始请求的响应的 HTTPURLResponse。
+    /// - completion: 包含新的 URLRequest、修改后的 URLRequest 或 nil 的闭包
     func task(_ task: URLSessionTask,
               willBeRedirectedTo request: URLRequest,
               for response: HTTPURLResponse,

@@ -1,27 +1,3 @@
-//
-//  CachedResponseHandler.swift
-//
-//  Copyright (c) 2019 Alamofire Software Foundation (http://alamofire.org/)
-//
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
-//
-
 import Foundation
 
 /// A type that handles whether the data task should store the HTTP response in the cache.
@@ -38,6 +14,9 @@ public protocol CachedResponseHandler: Sendable {
     ///   - task:       The data task whose request resulted in the cached response.
     ///   - response:   The cached response to potentially store in the cache.
     ///   - completion: The closure to execute containing cached response, a modified response, or `nil`.
+    // 这个 delegate 是子啊 urlProtocolDidFinishLoading 才会被调用的, 也就是说, 是在整个的网络请求完毕之后, 才触发的 CachedURLResponse 的构建.
+    // CachedURLResponse 的内部, 本身是有 data 的数据的.
+    // 返回的 CachedURLResponse 最终, 其实还是使用系统的 Cache 类进行的存储.
     func dataTask(_ task: URLSessionDataTask,
                   willCacheResponse response: CachedURLResponse,
                   completion: @escaping (CachedURLResponse?) -> Void)
@@ -57,15 +36,15 @@ public struct ResponseCacher {
         /// Modifies the cached response before storing it in the cache.
         case modify(@Sendable (_ task: URLSessionDataTask, _ cachedResponse: CachedURLResponse) -> CachedURLResponse?)
     }
-
+    
     /// Returns a `ResponseCacher` with a `.cache` `Behavior`.
     public static let cache = ResponseCacher(behavior: .cache)
     /// Returns a `ResponseCacher` with a `.doNotCache` `Behavior`.
     public static let doNotCache = ResponseCacher(behavior: .doNotCache)
-
+    
     /// The `Behavior` of the `ResponseCacher`.
     public let behavior: Behavior
-
+    
     /// Creates a `ResponseCacher` instance from the `Behavior`.
     ///
     /// - Parameter behavior: The `Behavior`.
@@ -93,10 +72,10 @@ extension ResponseCacher: CachedResponseHandler {
 extension CachedResponseHandler where Self == ResponseCacher {
     /// Provides a `ResponseCacher` which caches the response, if allowed. Equivalent to `ResponseCacher.cache`.
     public static var cache: ResponseCacher { .cache }
-
+    
     /// Provides a `ResponseCacher` which does not cache the response. Equivalent to `ResponseCacher.doNotCache`.
     public static var doNotCache: ResponseCacher { .doNotCache }
-
+    
     /// Creates a `ResponseCacher` which modifies the proposed `CachedURLResponse` using the provided closure.
     ///
     /// - Parameter closure: Closure used to modify the `CachedURLResponse`.

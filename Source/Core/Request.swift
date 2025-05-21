@@ -7,7 +7,11 @@ public class Request: @unchecked Sendable {
     /// `cancel()` on the `Request`.
     public enum State {
         /// Initial state of the `Request`.
-        // initialized, 没有太大价值, 就是一个判断的标准.
+        /*
+         明确生命周期起点：任何状态机都需要一个明确的起点，方便后续状态的有序流转。
+         便于状态判断：有些逻辑需要区分“尚未启动”与“已经开始处理”，比如请求还没发出去时，某些操作（如 resume、cancel）可能要被禁止或延迟。
+         防止非法状态切换：只有从 initialized 才能进入 resumed、suspended 等状态，避免状态混乱。
+         */
         case initialized
         /// `State` set when `resume()` is called. Any tasks created for the `Request` will have `resume()` called on
         /// them in this state.
@@ -43,10 +47,11 @@ public class Request: @unchecked Sendable {
     // MARK: - Initial State
 
     /// `UUID` providing a unique identifier for the `Request`, used in the `Hashable` and `Equatable` conformances.
+    ///  这个值,  更多用在了 Async Sequence 里面.
     public let id: UUID
+    
     /// The serial queue for all internal async actions.
     public let underlyingQueue: DispatchQueue
-    // 所有的使用 Protocol 做抽象的, 都使用了 Any
     /// The queue used for all serialization actions. By default it's a serial queue that targets `underlyingQueue`.
     public let serializationQueue: DispatchQueue
     /// `EventMonitor` used for event callbacks.
@@ -58,6 +63,8 @@ public class Request: @unchecked Sendable {
 
     // MARK: - Mutable State
 
+    // 所有的数据, 都是写到了 MutableState 的内部.
+    // 然后为了外界可以使用方便, 定义了各种的 get set 来进行 lock, unlock 相关操作的封装. 
     /// Type encapsulating all mutable state that may need to be accessed from anything other than the `underlyingQueue`.
     struct MutableState {
         /// State of the `Request`.
@@ -68,6 +75,7 @@ public class Request: @unchecked Sendable {
         var uploadProgressHandler: (handler: ProgressHandler, queue: DispatchQueue)?
         /// `ProgressHandler` and `DispatchQueue` provided for download progress callbacks.
         var downloadProgressHandler: (handler: ProgressHandler, queue: DispatchQueue)?
+        
         /// `RedirectHandler` provided for to handle request redirection.
         var redirectHandler: (any RedirectHandler)?
         /// `CachedResponseHandler` provided to handle response caching.
@@ -78,10 +86,12 @@ public class Request: @unchecked Sendable {
         var urlRequestHandler: (queue: DispatchQueue, handler: @Sendable (URLRequest) -> Void)?
         /// Queue and closure called when the `Request` creates a `URLSessionTask`.
         var urlSessionTaskHandler: (queue: DispatchQueue, handler: @Sendable (URLSessionTask) -> Void)?
+        
         /// Response serialization closures that handle response parsing.
         var responseSerializers: [@Sendable () -> Void] = []
         /// Response serialization completion closures executed once all response serializers are complete.
         var responseSerializerCompletions: [@Sendable () -> Void] = []
+        
         /// Whether response serializer processing is finished.
         var responseSerializerProcessingFinished = false
         /// `URLCredential` used for authentication challenges.
@@ -90,6 +100,7 @@ public class Request: @unchecked Sendable {
         var requests: [URLRequest] = []
         /// All `URLSessionTask`s created by Alamofire on behalf of the `Request`.
         var tasks: [URLSessionTask] = []
+        
         /// All `URLSessionTaskMetrics` values gathered by Alamofire on behalf of the `Request`. Should correspond
         /// exactly the the `tasks` created.
         var metrics: [URLSessionTaskMetrics] = []
@@ -243,7 +254,7 @@ public class Request: @unchecked Sendable {
     ///   - eventMonitor:       `EventMonitor` called for event callbacks from internal `Request` actions.
     ///   - interceptor:        `RequestInterceptor` used throughout the request lifecycle.
     ///   - delegate:           `RequestDelegate` that provides an interface to actions not performed by the `Request`.
-    // UUID 是自动
+    // UUID 的初始化, 写在 init 里面添加默认值. 既可以用默认值，也可以自定义传值。
     init(id: UUID = UUID(),
          underlyingQueue: DispatchQueue,
          serializationQueue: DispatchQueue,
@@ -269,6 +280,7 @@ public class Request: @unchecked Sendable {
     /// - Parameter request: The `URLRequest` created.
     // 各种 did 相关的函数, 本质都是在进行数据的修改.
     // 然后触发 eventMonitor 的回调.
+    // 各种外界调用的方法, 其实是 Session 中调用的. 所以会有一句 dispatchPrecondition(condition: .onQueue(underlyingQueue)) 这样的判断.
     func didCreateInitialURLRequest(_ request: URLRequest) {
         dispatchPrecondition(condition: .onQueue(underlyingQueue))
 
@@ -345,6 +357,7 @@ public class Request: @unchecked Sendable {
 
     /// Asynchronously calls any stored `cURLHandler` and then removes it from `mutableState`.
     private func callCURLHandlerIfNecessary() {
+        // 给一个机会, 进行 CRUL 的触发, 不知道为什么会有这样的一个设计.
         mutableState.write { mutableState in
             guard let cURLHandler = mutableState.cURLHandler else { return }
 
@@ -525,7 +538,8 @@ public class Request: @unchecked Sendable {
     ///  - Note: This method will also `resume` the instance if `delegate.startImmediately` returns `true`.
     ///
     /// - Parameter closure: The closure containing the response serialization call.
-    // 当注册了结果的响应之后, 就判断是否直接进行请求了.
+    /*
+     */
     func appendResponseSerializer(_ closure: @escaping @Sendable () -> Void) {
         mutableState.write { mutableState in
             mutableState.responseSerializers.append(closure)
@@ -875,6 +889,8 @@ public class Request: @unchecked Sendable {
         return self
     }
 
+    // 各种 On 相关的函数, 都是为了赋值.
+    // 各种 did 相关的函数, 都是为了触发存储的回调, 以及做后续的流程触发.
     /// Sets a closure to called whenever Alamofire creates a `URLRequest` for this instance.
     ///
     /// - Note: This closure will be called multiple times if the instance adapts incoming `URLRequest`s or is retried.

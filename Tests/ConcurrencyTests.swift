@@ -801,6 +801,7 @@ final class ClosureAPIConcurrencyTests: BaseTestCase {
 
         // When
         let request = session.request(.get)
+        
         async let httpResponses = request.httpResponses().collect()
         async let uploadProgress = request.uploadProgress().collect()
         async let downloadProgress = request.downloadProgress().collect()
@@ -809,7 +810,7 @@ final class ClosureAPIConcurrencyTests: BaseTestCase {
         async let descriptions = request.cURLDescriptions().collect()
         
         
-        // 直到这个时候, 才会真正的触发网络请求, 上面的各种, 只是在做配置而已. 
+        // 直到这个时候, 才会真正的触发网络请求, 上面的各种, 只是在做配置而已.
         async let response = request.serializingDecodable(TestResponse.self).response
 
         let values: (httpResponses: [HTTPURLResponse],
@@ -819,6 +820,8 @@ final class ClosureAPIConcurrencyTests: BaseTestCase {
                      tasks: [URLSessionTask],
                      descriptions: [String],
                      response: AFDataResponse<TestResponse>)
+        
+        // await 这里, 才会真正的进行异步等待.
         values = await (httpResponses, uploadProgress, downloadProgress, requests, tasks, descriptions, response)
 
         // Then
