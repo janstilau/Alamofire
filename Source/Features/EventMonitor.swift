@@ -1,31 +1,8 @@
-//
-//  EventMonitor.swift
-//
-//  Copyright (c) 2014-2018 Alamofire Software Foundation (http://alamofire.org/)
-//
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in
-//  all copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-//  THE SOFTWARE.
-//
-
 import Foundation
 
 /// Protocol outlining the lifetime events inside Alamofire. It includes both events received from the various
 /// `URLSession` delegate protocols as well as various events from the lifetime of `Request` and its subclasses.
+/// 描绘 Alamofire 内部生命周期事件的协议。它包括从各种 URLSession 代理协议接收的事件，以及来自 Request 及其子类生命周期的各种事件。
 public protocol EventMonitor: Sendable {
     /// The `DispatchQueue` onto which Alamofire's root `CompositeEventMonitor` will dispatch events. `.main` by default.
     var queue: DispatchQueue { get }
@@ -315,6 +292,7 @@ extension EventMonitor {
 public final class CompositeEventMonitor: EventMonitor {
     public let queue = DispatchQueue(label: "org.alamofire.compositeEventMonitor")
 
+    // 使用这个, T 的具体类型, 也可以是 Protocol 这种抽象的.
     let monitors: Protected<[any EventMonitor]>
 
     init(monitors: [any EventMonitor]) {
@@ -331,6 +309,7 @@ public final class CompositeEventMonitor: EventMonitor {
         }
     }
 
+    // 这个类的内部, 就需要将所有的 Protocol 重新都实现一遍, 因为这个类是有一个聚集 的monitor
     public func urlSession(_ session: URLSession, didBecomeInvalidWithError error: (any Error)?) {
         performEvent { $0.urlSession(session, didBecomeInvalidWithError: error) }
     }
@@ -577,6 +556,7 @@ public final class CompositeEventMonitor: EventMonitor {
     }
 }
 
+// 定义这个类, 主要是将自定义一些东西, 然后将这些东西, 要纳入到整个的运转流程中.
 /// `EventMonitor` that allows optional closures to be set to receive events.
 open class ClosureEventMonitor: EventMonitor, @unchecked Sendable {
     /// Closure called on the `urlSession(_:didBecomeInvalidWithError:)` event.

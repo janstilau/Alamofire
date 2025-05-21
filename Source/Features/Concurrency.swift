@@ -74,6 +74,8 @@ extension Request {
     fileprivate func stream<T>(of type: T.Type = T.self,
                                bufferingPolicy: StreamOf<T>.BufferingPolicy = .unbounded,
                                yielder: @escaping (StreamOf<T>.Continuation) -> Void) -> StreamOf<T> {
+        // yielder 是将 Continuation 传递出去, 在各个事件触发之后, 使用 continuation 触发异步序列产生新的值.
+        // 然后在 onFinish 中注册, 在网络请求结束之后, 注册 continuation 的 finish, 在网络请求结束之后, 关闭异步序列的后续值的产生.
         StreamOf<T>(bufferingPolicy: bufferingPolicy) { [unowned self] continuation in
             yielder(continuation)
             // Must come after serializers run in order to catch retry progress.
@@ -877,6 +879,7 @@ extension DispatchQueue {
 }
 
 /// An asynchronous sequence generated from an underlying `AsyncStream`. Only produced by Alamofire.
+// 自己定义的类型, 在泛型处理上, 可以用来简化系统泛型类型的多 Type 配置.
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 public struct StreamOf<Element>: AsyncSequence {
     public typealias AsyncIterator = Iterator
@@ -890,6 +893,7 @@ public struct StreamOf<Element>: AsyncSequence {
     fileprivate init(bufferingPolicy: BufferingPolicy = .unbounded,
                      onTermination: (() -> Void)? = nil,
                      builder: @escaping (Continuation) -> Void) {
+        // 基本上, onTermination 没有被触发.
         self.bufferingPolicy = bufferingPolicy
         self.onTermination = onTermination
         self.builder = builder

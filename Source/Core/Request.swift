@@ -63,6 +63,8 @@ public class Request: @unchecked Sendable {
         /// State of the `Request`.
         var state: State = .initialized
         /// `ProgressHandler` and `DispatchQueue` provided for upload progress callbacks.
+        // 相比较自己写的, 单闭包的方式, 这种流行的第三方库, 都会有一个 DispatchQueue 的赋值.
+        // 这样其实也是给了外界一个机会, 可以控制当前闭包的执行环境.
         var uploadProgressHandler: (handler: ProgressHandler, queue: DispatchQueue)?
         /// `ProgressHandler` and `DispatchQueue` provided for download progress callbacks.
         var downloadProgressHandler: (handler: ProgressHandler, queue: DispatchQueue)?
@@ -99,6 +101,7 @@ public class Request: @unchecked Sendable {
         /// representation in the state machine in the future.
         var isFinishing = false
         /// Actions to run when requests are finished. Use for concurrency support.
+        // Finish 可能有很多地方都在监听, 所有这里使用的是数组进行存储.
         var finishHandlers: [() -> Void] = []
     }
 
@@ -240,12 +243,14 @@ public class Request: @unchecked Sendable {
     ///   - eventMonitor:       `EventMonitor` called for event callbacks from internal `Request` actions.
     ///   - interceptor:        `RequestInterceptor` used throughout the request lifecycle.
     ///   - delegate:           `RequestDelegate` that provides an interface to actions not performed by the `Request`.
+    // UUID 是自动
     init(id: UUID = UUID(),
          underlyingQueue: DispatchQueue,
          serializationQueue: DispatchQueue,
          eventMonitor: (any EventMonitor)?,
          interceptor: (any RequestInterceptor)?,
          delegate: any RequestDelegate) {
+        // 这两个 queue, 是 session 的 queue, 也就是每个 Request 其实都是被 Session 统一管理的.
         self.id = id
         self.underlyingQueue = underlyingQueue
         self.serializationQueue = serializationQueue
@@ -262,6 +267,8 @@ public class Request: @unchecked Sendable {
     /// the `URLRequest` will be adapted before being issued.
     ///
     /// - Parameter request: The `URLRequest` created.
+    // 各种 did 相关的函数, 本质都是在进行数据的修改.
+    // 然后触发 eventMonitor 的回调.
     func didCreateInitialURLRequest(_ request: URLRequest) {
         dispatchPrecondition(condition: .onQueue(underlyingQueue))
 
@@ -497,6 +504,7 @@ public class Request: @unchecked Sendable {
     /// Finishes this `Request` and starts the response serializers.
     ///
     /// - Parameter error: The possible `Error` with which the instance will finish.
+    // 请求结束.
     func finish(error: AFError? = nil) {
         dispatchPrecondition(condition: .onQueue(underlyingQueue))
 
@@ -517,6 +525,7 @@ public class Request: @unchecked Sendable {
     ///  - Note: This method will also `resume` the instance if `delegate.startImmediately` returns `true`.
     ///
     /// - Parameter closure: The closure containing the response serialization call.
+    // 当注册了结果的响应之后, 就判断是否直接进行请求了.
     func appendResponseSerializer(_ closure: @escaping @Sendable () -> Void) {
         mutableState.write { mutableState in
             mutableState.responseSerializers.append(closure)
@@ -530,7 +539,10 @@ public class Request: @unchecked Sendable {
             }
 
             if mutableState.state.canTransitionTo(.resumed) {
-                underlyingQueue.async { if self.delegate?.startImmediately == true { self.resume() } }
+                underlyingQueue.async {
+                    if self.delegate?.startImmediately == true
+                    { self.resume() }
+                }
             }
         }
     }
@@ -699,6 +711,7 @@ public class Request: @unchecked Sendable {
     /// Resumes the instance.
     ///
     /// - Returns: The instance.
+    //
     @discardableResult
     public func resume() -> Self {
         mutableState.write { mutableState in
@@ -709,7 +722,8 @@ public class Request: @unchecked Sendable {
             underlyingQueue.async { self.didResume() }
 
             guard let task = mutableState.tasks.last, task.state != .completed else { return }
-
+            
+            // 在这里, 才是真正的启动 URLSession 所创建的 Task.
             task.resume()
             underlyingQueue.async { self.didResumeTask(task) }
         }

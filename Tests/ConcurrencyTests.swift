@@ -807,6 +807,9 @@ final class ClosureAPIConcurrencyTests: BaseTestCase {
         async let requests = request.urlRequests().collect()
         async let tasks = request.urlSessionTasks().collect()
         async let descriptions = request.cURLDescriptions().collect()
+        
+        
+        // 直到这个时候, 才会真正的触发网络请求, 上面的各种, 只是在做配置而已. 
         async let response = request.serializingDecodable(TestResponse.self).response
 
         let values: (httpResponses: [HTTPURLResponse],
@@ -837,7 +840,6 @@ extension AsyncSequence {
         for try await element in self {
             elements.append(element)
         }
-
         return elements
     }
 }

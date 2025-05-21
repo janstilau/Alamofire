@@ -167,7 +167,7 @@ extension Protected where Value == Request.MutableState {
     }
 }
 
-// lock 这个是线程同步的写法. 所以虽然有闭包, 但这是一个渐进式的过程. 
+// lock 这个是线程同步的写法. 所以虽然有闭包, 但这是一个渐进式的过程.
 extension Protected: Equatable where Value: Equatable {
     static func ==(lhs: Protected<Value>, rhs: Protected<Value>) -> Bool {
         lhs.read { left in rhs.read { right in left == right }}
