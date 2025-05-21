@@ -502,6 +502,7 @@ public class Request: @unchecked Sendable {
 
         guard !isCancelled, let error, let delegate else { finish(); return }
 
+        // 失败了, 通知 Session 进行重试相关的逻辑.
         delegate.retryResult(for: self, dueTo: error) { retryResult in
             switch retryResult {
             case .doNotRetry:
@@ -525,6 +526,7 @@ public class Request: @unchecked Sendable {
 
         mutableState.isFinishing = true
 
+        // 首先记录最终的 Error, 后续如何处理, 会根据是否有 Error 进行的.
         if let error { self.error = error }
 
         // Start response handlers
